@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>दिल्ली गुरु — Delhi Hindi Mastery</title>
+  <meta name="description" content="Learn authentic Delhi Hindi in 3 months. AI-powered listening, conversation, slang & vocabulary training." />
+  <meta name="theme-color" content="#0a0a0f" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: 'Outfit', 'Noto Sans Devanagari', system-ui, sans-serif;
+      background: #0a0a0f; color: #e8e8e8;
+      overflow-x: hidden; min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    #root { min-height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.25); border-radius: 3px; }
+    input, textarea, button { font-family: inherit; }
+    a { color: inherit; text-decoration: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    @keyframes bgDrift { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(-1%,-0.5%) scale(1.01); } 100% { transform: translate(0,0) scale(1); } }
+    @keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+    @keyframes bounceIn { 0% { transform: scale(0); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.5/babel.min.js"></script>
+
+  <script type="text/babel" data-type="module">
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    // ══════════════════════════════════════════
+    //  CONFIG
+    // ══════════════════════════════════════════
+    const API_URL = "https://api.anthropic.com/v1/messages";
+    const MODEL = "claude-sonnet-4-20250514";
+    const API_KEY_STORAGE = "delhiguru_api_key";
+
+    function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ""; }
+    function setApiKey(k) { localStorage.setItem(API_KEY_STORAGE, k); }
+    function clearApiKey() { localStorage.removeItem(API_KEY_STORAGE); }
+
+    // ══════════════════════════════════════════
+    //  DATA
+    // ══════════════════════════════════════════
+    const LEVELS = [
+      { name:"पहला कदम", eng:"First Steps",   xp:0,    emoji:"🚶" },
+      { name:"यात्री",    eng:"Traveler",      xp:300,  emoji:"🛺" },
+      { name:"दोस्त",    eng:"Friend",        xp:800,  emoji:"🤝" },
+      { name:"दिल्लीवाला",eng:"Delhiite",     xp:1500, emoji:"🏙️" },
+      { name:"चटोरा",    eng:"Foodie Local",  xp:2500, emoji:"🍛" },
+      { name:"पक्का दिल्लीवाला",eng:"True Delhiite",xp:4000,emoji:"⭐"},
+      { name:"उस्ताद",   eng:"Master",        xp:6000, emoji:"👑" },
+    ];
+
+    const SCENARIOS = [
+      { id:"auto",    icon:"🛺", title:"ऑटो वाला",        eng:"Auto Rickshaw",    desc:"Negotiate fares, give directions",                diff:1 },
+      { id:"chai",    icon:"☕", title:"चाय की दुकान",     eng:"Chai Stall",       desc:"Order chai, small talk with locals",              diff:1 },
+      { id:"metro",   icon:"🚇", title:"दिल्ली मेट्रो",    eng:"Delhi Metro",      desc:"Ask for directions, buy tokens",                  diff:1 },
+      { id:"market",  icon:"🛍️",title:"सरोजिनी नगर",     eng:"Street Market",    desc:"Haggle prices, ask about products",               diff:2 },
+      { id:"food",    icon:"🍽️",title:"ढाबा / रेस्टोरेंट",eng:"Restaurant",       desc:"Order food, ask for recommendations",             diff:2 },
+      { id:"landlord",icon:"🏠", title:"मकान मालिक",      eng:"Landlord",         desc:"Rent negotiation, complaints",                    diff:2 },
+      { id:"office",  icon:"💼", title:"ऑफिस चैट",        eng:"Office Talk",      desc:"Workplace conversations, meetings",               diff:3 },
+      { id:"party",   icon:"🎉", title:"पार्टी / मेहमान",   eng:"Social Gathering", desc:"Introductions, gossip, making plans",             diff:3 },
+      { id:"doctor",  icon:"🏥", title:"डॉक्टर",           eng:"Doctor Visit",     desc:"Describe symptoms, understand advice",            diff:3 },
+      { id:"phone",   icon:"📱", title:"फोन पर बात",      eng:"Phone Call",       desc:"Customer service, booking, complaints",           diff:3 },
+      { id:"wedding", icon:"💒", title:"शादी",             eng:"Wedding",          desc:"Wedding customs, family conversations",           diff:4 },
+      { id:"politics",icon:"🗳️",title:"चाय पे चर्चा",     eng:"Tea & Politics",   desc:"Debate current affairs like a local",             diff:4 },
+    ];
+
+    const SLANG_CATS = [
+      { id:"greetings",  title:"अभिवादन",    eng:"Greetings & Reactions",  icon:"👋" },
+      { id:"emotions",   title:"भावनाएं",     eng:"Emotions & Expressions", icon:"😤" },
+      { id:"food",       title:"खाना-पीना",   eng:"Food Talk",              icon:"🍕" },
+      { id:"insults",    title:"गालियाँ (lite)",eng:"Playful Insults",       icon:"😜" },
+      { id:"compliments",title:"तारीफ़",      eng:"Compliments",            icon:"✨" },
+      { id:"bargaining", title:"मोल-भाव",     eng:"Bargaining",             icon:"💰" },
+    ];
+
+    const WEEKLY_PLAN = [
+      { week:"1-2",  focus:"Survival Basics",    goals:"Auto rides, ordering food, metro navigation, basic greetings" },
+      { week:"3-4",  focus:"Market & Social",     goals:"Haggling, small talk, phone calls, expressing opinions" },
+      { week:"5-6",  focus:"Conversational Flow", goals:"Storytelling, jokes, Delhi slang, cultural references" },
+      { week:"7-8",  focus:"Complex Scenarios",   goals:"Complaints, negotiations, emotional expression, idioms" },
+      { week:"9-10", focus:"Cultural Fluency",    goals:"Politics, weddings, family dynamics, workplace Hindi" },
+      { week:"11-12",focus:"Delhi Native Mode",   goals:"Rapid-fire conversations, humor, sarcasm, local references" },
+    ];
+
+    const LISTEN_TOPICS = [
+      { id:"auto",   label:"🛺 Auto Ride",     prompt:"auto rickshaw ride negotiation and travel in Delhi" },
+      { id:"market", label:"🛍️ Market Talk",   prompt:"shopping at Sarojini Nagar or Chandni Chowk" },
+      { id:"food",   label:"🍛 Food Order",    prompt:"ordering street food or at a Delhi dhaba" },
+      { id:"metro",  label:"🚇 Metro Chat",    prompt:"conversation in Delhi Metro about directions or daily life" },
+      { id:"friends",label:"🤝 Friend Chat",   prompt:"casual conversation between Delhi friends about weekend plans" },
+      { id:"phone",  label:"📱 Phone Call",     prompt:"a phone call to book something or complain" },
+      { id:"news",   label:"📰 News / Cricket", prompt:"friends discussing news or cricket at a chai stall" },
+      { id:"family", label:"👨‍👩‍👧‍👦 Family Talk",prompt:"family conversation at home about daily matters" },
+    ];
+
+    const VOCAB_THEMES = [
+      "Delhi street food vocabulary","Delhi metro and transportation words","emotions and reactions in Delhi Hindi",
+      "numbers bargaining and money talk","time weather and daily routine words","family relationships in Hindi",
+      "technology and modern life Hindi","Delhi places and landmarks vocabulary","clothing and fashion for shopping",
+      "work and office Hindi vocabulary",
+    ];
+
+    // ══════════════════════════════════════════
+    //  HELPERS
+    // ══════════════════════════════════════════
+    const getLevel = xp => { let l = LEVELS[0]; for (const v of LEVELS) if (xp >= v.xp) l = v; return l; };
+    const getNext  = xp => LEVELS.find(l => xp < l.xp) || null;
+
+    const STORAGE_KEY = "delhiguru_progress";
+    const DEFAULT_PROGRESS = {
+      xp:0, streak:0, lastActive:null, lessonsCompleted:0,
+      scenariosCompleted:{}, vocabMastered:[], slangLearned:[],
+      dailyXp:0, dailyLessons:0, conversationCount:0,
+      listeningScore:0, listeningTotal:0,
+    };
+
+    function loadProgress() {
+      try { const d = localStorage.getItem(STORAGE_KEY); return d ? {...DEFAULT_PROGRESS, ...JSON.parse(d)} : {...DEFAULT_PROGRESS}; }
+      catch { return {...DEFAULT_PROGRESS}; }
+    }
+    function persistProgress(p) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch {}
+    }
+
+    // ──── TTS ────
+    function speakHindi(text, rate = 0.85) {
+      return new Promise(r => {
+        if (!window.speechSynthesis) { r(); return; }
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        const v = window.speechSynthesis.getVoices();
+        const hi = v.find(x => x.lang.startsWith("hi")) || v.find(x => x.lang.includes("hi"));
+        if (hi) u.voice = hi;
+        u.lang = "hi-IN"; u.rate = rate; u.pitch = 1.05;
+        u.onend = r; u.onerror = r;
+        window.speechSynthesis.speak(u);
+      });
+    }
+
+    // ──── Claude API ────
+    async function askClaude(sys, user, maxTok = 1000) {
+      const key = getApiKey();
+      if (!key) return null;
+      try {
+        const res = await fetch(API_URL, {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+            "x-api-key": key,
+            "anthropic-version":"2023-06-01",
+            "anthropic-dangerous-direct-browser-access":"true",
+          },
+          body: JSON.stringify({ model:MODEL, max_tokens:maxTok, system:sys, messages:[{role:"user",content:user}] }),
+        });
+        if (res.status === 401) { clearApiKey(); window.location.reload(); return null; }
+        const d = await res.json();
+        return d.content?.map(b => b.text||"").join("") || null;
+      } catch(e) { console.error(e); return null; }
+    }
+    async function askClaudeJSON(sys, user, maxTok = 1000) {
+      const raw = await askClaude(sys+"\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown backticks, no preamble.", user, maxTok);
+      if (!raw) return null;
+      try { return JSON.parse(raw.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim()); }
+      catch { console.error("JSON parse fail:", raw?.slice(0,200)); return null; }
+    }
+    async function askClaudeMulti(sys, messages, maxTok = 800) {
+      const key = getApiKey();
+      if (!key) return null;
+      try {
+        const res = await fetch(API_URL, {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+            "x-api-key": key,
+            "anthropic-version":"2023-06-01",
+            "anthropic-dangerous-direct-browser-access":"true",
+          },
+          body: JSON.stringify({ model:MODEL, max_tokens:maxTok, system:sys, messages }),
+        });
+        if (res.status === 401) { clearApiKey(); window.location.reload(); return null; }
+        const d = await res.json();
+        return d.content?.map(b => b.text||"").join("") || null;
+      } catch(e) { console.error(e); return null; }
+    }
+
+    // ──── System prompts ────
+    const SYS = `You are "दिल्ली गुरु" (Delhi Guru), a fun, witty Hindi language tutor who speaks in authentic Delhi Hindi style.
+The student can read/write Hindi but only understands 40-50% of spoken Hindi. They want to become conversationally fluent with a Delhi accent in 3 months.
+KEY RULES:
+- Use Delhi colloquialisms naturally (yaar, bhai, chal, arre, accha, matlab, basically, etc.)
+- Mix Hindi-English (Hinglish) naturally as real Delhiites do
+- Always provide: Hindi (Devanagari) + Transliteration (Roman) + English meaning
+- Be encouraging but push the student to understand more each time
+- Use humor and Delhi cultural references
+- Focus on LISTENING comprehension`;
+
+    const SYS_CONVO = SYS + `\n\nYou are roleplaying a specific Delhi scenario. Stay in character.\nAfter each exchange provide:\n1. Hindi (Devanagari)\n2. Transliteration in brackets\n3. Brief English translation\n4. One "Delhi Tip"\nKeep responses natural. Use fillers like "matlab", "basically", "dekho na", "samjhe?" naturally.`;
+
+    const SYS_LISTEN = SYS + `\n\nGenerate a listening comprehension exercise. Respond in this exact JSON:\n{"title":"...","context":"...","dialogue":[{"speaker":"...","hindi":"...","transliteration":"...","english":"..."}],"questions":[{"question":"...","options":["A","B","C","D"],"correct":0,"explanation":"..."}],"vocabulary":[{"word":"...","transliteration":"...","meaning":"...","usage":"..."}],"delhi_tip":"..."}`;
+
+    const SYS_SLANG = SYS + `\n\nTeach Delhi slang for the given category. Respond in this exact JSON:\n{"phrases":[{"hindi":"...","transliteration":"...","meaning":"...","literal":"...","context":"...","example_dialogue":{"hindi":"...","transliteration":"...","english":"..."},"formality":"casual|slang|semi-formal"}],"cultural_note":"..."}`;
+
+    const SYS_VOCAB = SYS + `\n\nGenerate a vocabulary exercise. Respond in this exact JSON:\n{"theme":"...","words":[{"hindi":"...","transliteration":"...","meaning":"...","example_hindi":"...","example_trans":"...","example_eng":"...","delhi_variant":"..."}],"quiz":[{"type":"meaning","prompt":"...","options":["A","B","C","D"],"correct":0}]}`;
+
+    // ══════════════════════════════════════════
+    //  MICRO-COMPONENTS
+    // ══════════════════════════════════════════
+
+    function BG() {
+      return (
+        <div style={{position:"fixed",inset:0,zIndex:0,overflow:"hidden",pointerEvents:"none"}}>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,#0a0a0f 0%,#1a0a1e 30%,#0f1a2e 60%,#0a0a0f 100%)"}} />
+          <div style={{position:"absolute",top:"-50%",left:"-50%",width:"200%",height:"200%",
+            background:"radial-gradient(ellipse at 30% 20%,rgba(255,107,53,0.06) 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(138,43,226,0.05) 0%,transparent 50%),radial-gradient(ellipse at 50% 50%,rgba(255,193,7,0.03) 0%,transparent 60%)",
+            animation:"bgDrift 25s ease-in-out infinite"}} />
+          <svg style={{position:"absolute",bottom:0,left:0,width:"100%",height:"180px",opacity:0.035}} viewBox="0 0 1200 200">
+            <path d="M0,200 L50,180 L60,120 L70,180 L120,160 L180,100 L190,160 L240,180 L300,140 L320,60 L340,140 L400,180 L500,160 L520,80 L540,160 L600,180 L700,150 L720,40 L740,150 L800,180 L900,170 L920,90 L940,170 L1000,180 L1100,160 L1120,70 L1140,160 L1200,180 L1200,200 Z" fill="#FF6B35"/>
+          </svg>
+        </div>
+      );
+    }
+
+    function XPBar({xp}) {
+      const lv=getLevel(xp), nx=getNext(xp);
+      const pct = nx ? ((xp-lv.xp)/(nx.xp-lv.xp))*100 : 100;
+      return (
+        <div style={{display:"flex",alignItems:"center",gap:"12px",padding:"6px 0"}}>
+          <span style={{fontSize:"22px"}}>{lv.emoji}</span>
+          <div style={{flex:1}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px",color:"#aaa",marginBottom:"3px"}}>
+              <span>{lv.name} · {lv.eng}</span>
+              <span>{xp} XP{nx?` / ${nx.xp}`:""}</span>
+            </div>
+            <div style={{height:"5px",background:"rgba(255,255,255,0.07)",borderRadius:"3px",overflow:"hidden"}}>
+              <div style={{height:"100%",borderRadius:"3px",width:`${pct}%`,background:"linear-gradient(90deg,#FF6B35,#FFD93D)",transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)"}} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Loader({text="सोच रहा हूँ..."}) {
+      return (
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"14px",padding:"40px"}}>
+          <div style={{width:"36px",height:"36px",border:"3px solid rgba(255,107,53,0.15)",borderTopColor:"#FF6B35",borderRadius:"50%",animation:"spin 0.7s linear infinite"}} />
+          <span style={{color:"#999",fontSize:"13px",fontStyle:"italic"}}>{text}</span>
+        </div>
+      );
+    }
+
+    function Speak({text, rate, size=34}) {
+      const [on,setOn]=useState(false);
+      return (
+        <button onClick={async()=>{setOn(true);await speakHindi(text,rate||0.85);setOn(false);}}
+          style={{width:`${size}px`,height:`${size}px`,borderRadius:"50%",border:"none",cursor:"pointer",
+            background:on?"rgba(255,107,53,0.3)":"rgba(255,107,53,0.12)",color:"#FF6B35",
+            display:"flex",alignItems:"center",justifyContent:"center",fontSize:`${size*0.4}px`,transition:"all 0.2s",flexShrink:0}}
+          title="Listen in Hindi">{on?"⏸":"🔊"}</button>
+      );
+    }
+
+    function Card({children,style={},onClick,glow=false}) {
+      const [h,setH]=useState(false);
+      return (
+        <div onClick={onClick} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+          style={{background:"rgba(255,255,255,0.035)",border:"1px solid rgba(255,255,255,0.07)",
+            borderRadius:"14px",padding:"18px",transition:"all 0.25s cubic-bezier(0.4,0,0.2,1)",
+            cursor:onClick?"pointer":"default",
+            ...(onClick && h ? {background:"rgba(255,255,255,0.06)",borderColor:"rgba(255,107,53,0.25)",transform:"translateY(-2px)",boxShadow:"0 6px 28px rgba(255,107,53,0.08)"} : {}),
+            ...style}}>
+          {children}
+        </div>
+      );
+    }
+
+    function BackBtn({onClick,label="Back"}) {
+      return <button onClick={onClick} style={{background:"none",border:"none",color:"#777",cursor:"pointer",fontSize:"13px",marginBottom:"10px",padding:"4px 0"}}>← {label}</button>;
+    }
+
+    // ══════════════════════════════════════════
+    //  HOME
+    // ══════════════════════════════════════════
+    function Home({progress:p, nav}) {
+      const wk = Math.min(Math.ceil((p.lessonsCompleted+1)/5),12);
+      const phase = WEEKLY_PLAN[Math.min(Math.floor((wk-1)/2),5)];
+      const lv = getLevel(p.xp);
+
+      return (
+        <div style={{animation:"fadeIn 0.45s ease-out"}}>
+          <Card style={{marginTop:"8px",background:"linear-gradient(135deg,rgba(255,107,53,0.1) 0%,rgba(138,43,226,0.07) 100%)",border:"1px solid rgba(255,107,53,0.18)"}}>
+            <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>
+              {p.xp===0?"चलो शुरू करते हैं! 🚀":`${lv.emoji} ${lv.name}!`}
+            </div>
+            <div style={{fontSize:"13px",color:"#bbb",lineHeight:1.6}}>
+              {p.xp===0?"3 months to speak Delhi Hindi like a local. Let's do this, yaar!"
+                :`Week ${wk}: ${phase.focus} — ${phase.goals}`}
+            </div>
+          </Card>
+
+          <div style={{marginTop:"20px",marginBottom:"8px",fontSize:"11px",color:"#777",fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase"}}>
+            आज का अभ्यास · Today's Practice
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px"}}>
+            {[
+              {icon:"👂",t:"सुनो और समझो",e:"Listen & Understand",s:"listen",c:"#FF6B35"},
+              {icon:"🗣️",t:"बातचीत करो",e:"Start Talking",s:"scenarios",c:"#8B5CF6"},
+              {icon:"🔥",t:"दिल्ली स्लैंग",e:"Delhi Slang",s:"slang",c:"#FFD93D"},
+              {icon:"📚",t:"शब्द भंडार",e:"Vocabulary",s:"vocab",c:"#34D399"},
+            ].map((x,i)=>(
+              <Card key={i} onClick={()=>nav(x.s)} style={{animation:`slideUp 0.4s ease-out ${i*0.07}s both`}}>
+                <div style={{fontSize:"26px",marginBottom:"6px"}}>{x.icon}</div>
+                <div style={{fontSize:"14px",fontWeight:700}}>{x.t}</div>
+                <div style={{fontSize:"10px",color:"#999",marginTop:"2px"}}>{x.e}</div>
+              </Card>
+            ))}
+          </div>
+
+          <div style={{marginTop:"22px"}}>
+            <div onClick={()=>nav("plan")} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:"6px",fontSize:"11px",color:"#777",fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase"}}>
+              <span>12-Week Roadmap</span><span style={{color:"#FF6B35",fontSize:"12px"}}>View All →</span>
+            </div>
+            <Card style={{background:"rgba(138,43,226,0.05)",border:"1px solid rgba(138,43,226,0.12)"}}>
+              <div style={{display:"flex",gap:"3px",marginBottom:"10px"}}>
+                {WEEKLY_PLAN.map((_,i)=>(
+                  <div key={i} style={{flex:1,height:"3px",borderRadius:"2px",background:i<=Math.floor((wk-1)/2)?"linear-gradient(90deg,#FF6B35,#8B5CF6)":"rgba(255,255,255,0.06)"}} />
+                ))}
+              </div>
+              <div style={{fontSize:"13px",fontWeight:600}}>Week {wk}: {phase.focus}</div>
+              <div style={{fontSize:"11px",color:"#aaa",marginTop:"3px"}}>{phase.goals}</div>
+            </Card>
+          </div>
+
+          <div style={{marginTop:"22px",marginBottom:"6px",fontSize:"11px",color:"#777",fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase"}}>
+            Quick Scenario · तुरंत अभ्यास
+          </div>
+          <div style={{display:"flex",gap:"8px",overflowX:"auto",paddingBottom:"6px",scrollSnapType:"x mandatory"}}>
+            {SCENARIOS.slice(0,6).map(sc=>(
+              <Card key={sc.id} onClick={()=>nav("convo",sc)} style={{minWidth:"130px",flexShrink:0,padding:"13px",textAlign:"center",scrollSnapAlign:"start"}}>
+                <div style={{fontSize:"26px",marginBottom:"4px"}}>{sc.icon}</div>
+                <div style={{fontSize:"12px",fontWeight:700}}>{sc.title}</div>
+                <div style={{fontSize:"9px",color:"#888",marginTop:"2px"}}>{sc.eng}</div>
+                <div style={{display:"flex",gap:"2px",justifyContent:"center",marginTop:"5px"}}>
+                  {[0,1,2,3].map(i=><div key={i} style={{width:"5px",height:"5px",borderRadius:"50%",background:i<sc.diff?"#FF6B35":"rgba(255,255,255,0.08)"}} />)}
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginTop:"18px"}}>
+            {[
+              {v:p.lessonsCompleted,l:"Lessons",ic:"📖"},
+              {v:p.conversationCount,l:"Convos",ic:"💬"},
+              {v:p.vocabMastered.length,l:"Words",ic:"🧠"},
+            ].map((s,i)=>(
+              <Card key={i} style={{textAlign:"center",padding:"12px"}}>
+                <div style={{fontSize:"18px"}}>{s.ic}</div>
+                <div style={{fontSize:"20px",fontWeight:800,color:"#FF6B35",marginTop:"3px"}}>{s.v}</div>
+                <div style={{fontSize:"9px",color:"#888"}}>{s.l}</div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ══════════════════════════════════════════
+    //  LISTENING
+    // ══════════════════════════════════════════
+    function Listen({addXP, saveP, progress:p, nav}) {
+      const [ex,setEx]=useState(null), [loading,setLoading]=useState(false);
+      const [ans,setAns]=useState({}), [show,setShow]=useState(false);
+      const [diff,setDiff]=useState(p.listeningTotal>20?(p.listeningScore/Math.max(p.listeningTotal,1)>0.7?"hard":"medium"):"easy");
+      const [playing,setPlaying]=useState(false);
+
+      const diffDesc = {easy:"Simple vocab, short sentences, 3-4 lines, 2 questions",medium:"Moderate vocab with idioms, 5-6 lines, 3 questions",hard:"Advanced vocab, fast-paced, 7-8 lines, 4 questions"};
+
+      async function gen(topic) {
+        setLoading(true); setEx(null); setAns({}); setShow(false);
+        const data = await askClaudeJSON(SYS_LISTEN,
+          `Generate a ${diff} difficulty listening exercise about: ${topic.prompt}\n\n${diffDesc[diff]}. Make it feel like a REAL Delhi conversation. Use Delhi accent markers.`);
+        if(data) setEx(data);
+        setLoading(false);
+      }
+
+      async function playAll() {
+        if(!ex?.dialogue) return; setPlaying(true);
+        for(const l of ex.dialogue) { await speakHindi(l.hindi, diff==="hard"?1.0:0.85); await new Promise(r=>setTimeout(r,350)); }
+        setPlaying(false);
+      }
+
+      function check() {
+        let c=0; ex.questions.forEach((q,i)=>{ if(ans[i]===q.correct) c++; });
+        const t=ex.questions.length;
+        addXP(c*15+(c===t?20:0));
+        saveP({lessonsCompleted:p.lessonsCompleted+1, listeningScore:p.listeningScore+c, listeningTotal:p.listeningTotal+t});
+        setShow(true);
+      }
+
+      const score = show ? Object.values(ans).filter((a,i)=>a===ex.questions[i].correct).length : 0;
+
+      return (
+        <div style={{animation:"fadeIn 0.4s ease-out"}}>
+          <BackBtn onClick={()=>nav("home")} />
+          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>👂 सुनो और समझो</div>
+          <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>Listen to Delhi conversations & test comprehension</div>
+
+          <div style={{display:"flex",gap:"6px",marginBottom:"18px"}}>
+            {["easy","medium","hard"].map(d=>(
+              <button key={d} onClick={()=>setDiff(d)} style={{flex:1,padding:"9px",borderRadius:"9px",border:"none",cursor:"pointer",
+                background:diff===d?"rgba(255,107,53,0.18)":"rgba(255,255,255,0.035)",color:diff===d?"#FF6B35":"#888",
+                fontWeight:600,fontSize:"11px",textTransform:"capitalize",transition:"all 0.2s"}}>
+                {d==="easy"?"🟢":d==="medium"?"🟡":"🔴"} {d}
+              </button>
+            ))}
+          </div>
+
+          {!ex&&!loading && (
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+              {LISTEN_TOPICS.map(t=>(
+                <Card key={t.id} onClick={()=>gen(t)} style={{textAlign:"center",padding:"14px"}}>
+                  <div style={{fontSize:"22px",marginBottom:"4px"}}>{t.label.split(" ")[0]}</div>
+                  <div style={{fontSize:"11px",fontWeight:600}}>{t.label.split(" ").slice(1).join(" ")}</div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {loading && <Loader text="Exercise बना रहा हूँ... ek second yaar!" />}
+
+          {ex && (
+            <div style={{animation:"slideUp 0.4s ease-out"}}>
+              <Card style={{marginBottom:"14px",border:"1px solid rgba(255,107,53,0.18)"}}>
+                <div style={{fontSize:"15px",fontWeight:700,marginBottom:"3px"}}>{ex.title}</div>
+                <div style={{fontSize:"11px",color:"#aaa",marginBottom:"14px"}}>{ex.context}</div>
+
+                <button onClick={playAll} disabled={playing} style={{width:"100%",padding:"11px",borderRadius:"9px",border:"none",cursor:"pointer",
+                  background:playing?"linear-gradient(90deg,rgba(255,107,53,0.08),rgba(255,107,53,0.16),rgba(255,107,53,0.08))":"linear-gradient(135deg,rgba(255,107,53,0.18),rgba(138,43,226,0.12))",
+                  color:"#FF6B35",fontWeight:700,fontSize:"13px",marginBottom:"14px",backgroundSize:playing?"200% 100%":"100%",animation:playing?"shimmer 1.5s infinite":"none"}}>
+                  {playing?"🔊 सुनो... (Playing)":"▶️ पूरी बातचीत सुनो (Listen to Full Dialogue)"}
+                </button>
+
+                {ex.dialogue?.map((l,i)=>(
+                  <div key={i} style={{display:"flex",gap:"8px",alignItems:"flex-start",padding:"9px",borderRadius:"9px",marginBottom:"5px",
+                    background:i%2===0?"rgba(255,107,53,0.04)":"rgba(138,43,226,0.04)"}}>
+                    <Speak text={l.hindi} size={28} />
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:"10px",fontWeight:600,color:i%2===0?"#FF6B35":"#8B5CF6",marginBottom:"1px"}}>{l.speaker}</div>
+                      <div style={{fontSize:"14px",fontWeight:600,lineHeight:1.5}}>{l.hindi}</div>
+                      <div style={{fontSize:"11px",color:"#999",fontStyle:"italic"}}>{l.transliteration}</div>
+                      {show && <div style={{fontSize:"10px",color:"#34D399",marginTop:"3px"}}>→ {l.english}</div>}
+                    </div>
+                  </div>
+                ))}
+              </Card>
+
+              <div style={{fontSize:"13px",fontWeight:700,marginBottom:"10px"}}>🧠 Comprehension Questions</div>
+              {ex.questions?.map((q,qi)=>(
+                <Card key={qi} style={{marginBottom:"8px",
+                  border:show?(ans[qi]===q.correct?"1px solid rgba(52,211,153,0.35)":"1px solid rgba(239,68,68,0.35)"):"1px solid rgba(255,255,255,0.07)"}}>
+                  <div style={{fontSize:"12px",fontWeight:600,marginBottom:"8px"}}>{qi+1}. {q.question}</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:"5px"}}>
+                    {q.options?.map((o,oi)=>(
+                      <button key={oi} onClick={()=>!show&&setAns({...ans,[qi]:oi})}
+                        style={{padding:"9px 12px",borderRadius:"7px",border:"none",cursor:show?"default":"pointer",textAlign:"left",fontSize:"12px",transition:"all 0.2s",
+                          background:show?(oi===q.correct?"rgba(52,211,153,0.12)":ans[qi]===oi?"rgba(239,68,68,0.12)":"rgba(255,255,255,0.025)")
+                            :(ans[qi]===oi?"rgba(255,107,53,0.12)":"rgba(255,255,255,0.03)"),
+                          color:show?(oi===q.correct?"#34D399":ans[qi]===oi?"#EF4444":"#888"):(ans[qi]===oi?"#FF6B35":"#ccc"),
+                          fontWeight:ans[qi]===oi||(show&&oi===q.correct)?600:400}}>
+                        {String.fromCharCode(65+oi)}. {o}
+                      </button>
+                    ))}
+                  </div>
+                  {show && <div style={{marginTop:"8px",padding:"8px",background:"rgba(255,255,255,0.025)",borderRadius:"6px",fontSize:"11px",color:"#aaa",lineHeight:1.5}}>💡 {q.explanation}</div>}
+                </Card>
+              ))}
+
+              {!show ? (
+                <button onClick={check} disabled={Object.keys(ans).length<(ex.questions?.length||0)}
+                  style={{width:"100%",padding:"13px",borderRadius:"10px",border:"none",cursor:"pointer",
+                    background:Object.keys(ans).length>=(ex.questions?.length||0)?"linear-gradient(135deg,#FF6B35,#FFD93D)":"rgba(255,255,255,0.04)",
+                    color:Object.keys(ans).length>=(ex.questions?.length||0)?"#000":"#666",fontWeight:700,fontSize:"14px",marginTop:"6px"}}>
+                  जवाब चेक करो ✓
+                </button>
+              ) : (
+                <div style={{animation:"popIn 0.3s ease-out"}}>
+                  <Card style={{textAlign:"center",background:"rgba(255,107,53,0.07)",marginTop:"6px"}}>
+                    <div style={{fontSize:"26px",marginBottom:"6px",animation:"bounceIn 0.4s ease-out"}}>{score===ex.questions.length?"🎉":"💪"}</div>
+                    <div style={{fontSize:"15px",fontWeight:700}}>{score}/{ex.questions.length} Correct!</div>
+                    <div style={{fontSize:"11px",color:"#FFD93D",marginTop:"3px"}}>+{score*15+(score===ex.questions.length?20:0)} XP</div>
+                  </Card>
+
+                  {ex.vocabulary?.length>0 && (
+                    <Card style={{marginTop:"10px"}}>
+                      <div style={{fontSize:"12px",fontWeight:700,marginBottom:"8px"}}>📝 New Vocabulary</div>
+                      {ex.vocabulary.map((v,i)=>(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:"7px",padding:"5px 0",borderBottom:i<ex.vocabulary.length-1?"1px solid rgba(255,255,255,0.035)":"none"}}>
+                          <Speak text={v.word} size={26} />
+                          <div><span style={{fontWeight:600}}>{v.word}</span><span style={{color:"#888",fontSize:"11px"}}> ({v.transliteration})</span><span style={{color:"#aaa",fontSize:"11px"}}> — {v.meaning}</span></div>
+                        </div>
+                      ))}
+                    </Card>
+                  )}
+
+                  {ex.delhi_tip && (
+                    <Card style={{marginTop:"10px",background:"rgba(255,193,7,0.05)",border:"1px solid rgba(255,193,7,0.12)"}}>
+                      <div style={{fontSize:"12px"}}>🏙️ <strong>Delhi Tip:</strong> {ex.delhi_tip}</div>
+                    </Card>
+                  )}
+
+                  <div style={{display:"flex",gap:"7px",marginTop:"10px"}}>
+                    <button onClick={()=>{setEx(null);setAns({});setShow(false);}} style={{flex:1,padding:"11px",borderRadius:"9px",border:"1px solid rgba(255,107,53,0.25)",background:"transparent",color:"#FF6B35",fontWeight:600,cursor:"pointer",fontSize:"12px"}}>New Topic</button>
+                    <button onClick={()=>gen(LISTEN_TOPICS[Math.floor(Math.random()*LISTEN_TOPICS.length)])} style={{flex:1,padding:"11px",borderRadius:"9px",border:"none",background:"linear-gradient(135deg,#FF6B35,#FFD93D)",color:"#000",fontWeight:700,cursor:"pointer",fontSize:"12px"}}>Next Exercise →</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ══════════════════════════════════════════
+    //  CONVERSATION
+    // ══════════════════════════════════════════
+    function Convo({addXP,saveP,progress:p,nav,scenario}) {
+      const sc = scenario||SCENARIOS[0];
+      const [msgs,setMsgs]=useState([]), [inp,setInp]=useState(""), [sending,setSending]=useState(false);
+      const [hint,setHint]=useState(""), [showHint,setShowHint]=useState(false);
+      const chatRef=useRef(null);
+
+      useEffect(()=>{
+        (async()=>{
+          setSending(true);
+          const r = await askClaude(
+            SYS_CONVO+`\n\nSCENARIO: ${sc.eng} (${sc.title})\nYou are the ${sc.eng} character. Start the conversation in character.\n\nFormat EVERY response:\n[HINDI]\n(Devanagari)\n\n[TRANSLITERATION]\n(Roman)\n\n[ENGLISH]\n(Translation)\n\n[DELHI TIP]\n(tip)`,
+            `Start the ${sc.eng} scenario. Open with a natural Delhi-style greeting. I can read Hindi but my listening comprehension is ~40-50%. Challenge me but be supportive.`);
+          if(r) setMsgs([{role:"assistant",content:r}]);
+          setSending(false);
+        })();
+      },[]);
+
+      useEffect(()=>{ if(chatRef.current) chatRef.current.scrollTop=chatRef.current.scrollHeight; },[msgs]);
+
+      async function send() {
+        if(!inp.trim()||sending) return;
+        const txt=inp.trim(); setInp(""); setShowHint(false);
+        const nm=[...msgs,{role:"user",content:txt}]; setMsgs(nm); setSending(true);
+        const r = await askClaudeMulti(
+          SYS_CONVO+`\n\nSCENARIO: ${sc.eng} (${sc.title})\nContinue naturally. Correct mistakes gently. If student writes English, encourage Hindi.\n\nFormat:\n[HINDI]\n(Devanagari)\n\n[TRANSLITERATION]\n(Roman)\n\n[ENGLISH]\n(Translation)\n\n[DELHI TIP]\n(tip)\n\nIf mistakes:\n[CORRECTION]\n(gentle correction)`,
+          nm.map(m=>({role:m.role,content:m.content})));
+        setMsgs([...nm,{role:"assistant",content:r||"Arre yaar, network issue! Phir se try karo 🛺"}]);
+        addXP(10); saveP({conversationCount:p.conversationCount+1});
+        setSending(false);
+      }
+
+      async function getHint() {
+        setShowHint(true);
+        const last=[...msgs].reverse().find(m=>m.role==="assistant");
+        const h=await askClaude(SYS+"\nProvide a short hint. Give 2-3 options in Hindi with transliteration and English. Keep brief.",
+          `Scenario: ${sc.eng}\nLast: ${last?.content?.slice(0,300)||"start"}\nWhat should I say next?`);
+        setHint(h||"Try a simple sentence. Mix Hindi and English!");
+      }
+
+      function extractHi(c) { const m=c.match(/\[HINDI\]\s*([\s\S]*?)(?=\[|$)/); return m?m[1].trim():""; }
+
+      function fmt(c) {
+        const hi=c.match(/\[HINDI\]\s*([\s\S]*?)(?=\[|$)/);
+        const tr=c.match(/\[TRANSLITERATION\]\s*([\s\S]*?)(?=\[|$)/);
+        const en=c.match(/\[ENGLISH\]\s*([\s\S]*?)(?=\[|$)/);
+        const tp=c.match(/\[DELHI TIP\]\s*([\s\S]*?)(?=\[|$)/);
+        const co=c.match(/\[CORRECTION\]\s*([\s\S]*?)(?=\[|$)/);
+        if(!hi) return <div style={{fontSize:"13px",lineHeight:1.6,whiteSpace:"pre-wrap"}}>{c}</div>;
+        return (<div>
+          <div style={{fontSize:"15px",fontWeight:600,lineHeight:1.6,marginBottom:"4px"}}>{hi[1].trim()}</div>
+          {tr&&<div style={{fontSize:"12px",color:"#aaa",fontStyle:"italic",marginBottom:"3px"}}>{tr[1].trim()}</div>}
+          {en&&<div style={{fontSize:"11px",color:"#888",marginBottom:"6px"}}>{en[1].trim()}</div>}
+          {tp&&<div style={{fontSize:"10px",padding:"5px 8px",background:"rgba(255,193,7,0.07)",borderRadius:"5px",color:"#FFD93D",marginBottom:"3px"}}>🏙️ {tp[1].trim()}</div>}
+          {co&&<div style={{fontSize:"10px",padding:"5px 8px",background:"rgba(239,68,68,0.07)",borderRadius:"5px",color:"#EF9A9A",marginTop:"3px"}}>✏️ {co[1].trim()}</div>}
+        </div>);
+      }
+
+      return (
+        <div style={{animation:"fadeIn 0.4s ease-out",display:"flex",flexDirection:"column",height:"calc(100vh - 195px)"}}>
+          <BackBtn onClick={()=>nav("scenarios")} />
+          <div style={{display:"flex",alignItems:"center",gap:"9px",padding:"10px",borderRadius:"10px",marginBottom:"10px",
+            background:"rgba(255,107,53,0.07)",border:"1px solid rgba(255,107,53,0.12)"}}>
+            <span style={{fontSize:"26px"}}>{sc.icon}</span>
+            <div><div style={{fontSize:"14px",fontWeight:700}}>{sc.title}</div><div style={{fontSize:"10px",color:"#aaa"}}>{sc.desc}</div></div>
+          </div>
+
+          <div ref={chatRef} style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:"8px",padding:"6px 0",marginBottom:"8px"}}>
+            {msgs.map((m,i)=>(
+              <div key={i} style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"90%",animation:"popIn 0.2s ease-out"}}>
+                <div style={{padding:"10px 14px",borderRadius:m.role==="user"?"14px 14px 3px 14px":"14px 14px 14px 3px",
+                  background:m.role==="user"?"linear-gradient(135deg,rgba(255,107,53,0.12),rgba(255,107,53,0.06))":"rgba(255,255,255,0.04)",
+                  border:`1px solid ${m.role==="user"?"rgba(255,107,53,0.16)":"rgba(255,255,255,0.05)"}`}}>
+                  {m.role==="user"?<div style={{fontSize:"13px"}}>{m.content}</div>:
+                    <div>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"3px"}}>
+                        <span style={{fontSize:"10px",color:"#888"}}>{sc.icon} {sc.title}</span>
+                        {extractHi(m.content)&&<Speak text={extractHi(m.content)} size={26}/>}
+                      </div>
+                      {fmt(m.content)}
+                    </div>}
+                </div>
+              </div>
+            ))}
+            {sending&&<div style={{alignSelf:"flex-start",padding:"10px 14px",background:"rgba(255,255,255,0.03)",borderRadius:"14px",display:"flex",gap:"4px"}}>
+              {[0,1,2].map(i=><div key={i} style={{width:"7px",height:"7px",borderRadius:"50%",background:"#FF6B35",animation:`pulse 0.8s ease-in-out ${i*0.15}s infinite`}} />)}
+            </div>}
+          </div>
+
+          {showHint&&hint&&(
+            <Card style={{marginBottom:"6px",fontSize:"11px",padding:"10px",background:"rgba(52,211,153,0.05)",border:"1px solid rgba(52,211,153,0.12)"}}>
+              <div style={{fontWeight:600,marginBottom:"3px",color:"#34D399"}}>💡 Hint / सुझाव:</div>
+              <div style={{lineHeight:1.6,whiteSpace:"pre-wrap",color:"#ccc"}}>{hint}</div>
+            </Card>
+          )}
+
+          <div style={{display:"flex",gap:"7px",alignItems:"center"}}>
+            <button onClick={getHint} style={{padding:"9px 10px",borderRadius:"9px",border:"1px solid rgba(52,211,153,0.25)",background:"transparent",color:"#34D399",cursor:"pointer",fontSize:"15px"}} title="Get hint">💡</button>
+            <input value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()}
+              placeholder="Hindi या English में लिखो..."
+              style={{flex:1,padding:"11px 14px",borderRadius:"10px",border:"1px solid rgba(255,255,255,0.08)",background:"rgba(255,255,255,0.03)",color:"#e8e8e8",fontSize:"13px",outline:"none"}} />
+            <button onClick={send} disabled={!inp.trim()||sending}
+              style={{padding:"9px 14px",borderRadius:"9px",border:"none",cursor:"pointer",
+                background:inp.trim()?"linear-gradient(135deg,#FF6B35,#FFD93D)":"rgba(255,255,255,0.04)",
+                color:inp.trim()?"#000":"#666",fontWeight:700,fontSize:"13px"}}>भेजो →</button>
+          </div>
+        </div>
+      );
+    }
+
+    // ══════════════════════════════════════════
+    //  SCENARIOS LIST
+    // ══════════════════════════════════════════
+    function ScenariosList({nav,progress:p}) {
+      const labels={1:"🟢 BEGINNER",2:"🟡 INTERMEDIATE",3:"🟠 ADVANCED",4:"🔴 EXPERT"};
+      return (
+        <div style={{animation:"fadeIn 0.4s ease-out"}}>
+          <BackBtn onClick={()=>nav("home")} />
+          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>🗣️ बातचीत करो</div>
+          <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>Practice real Delhi scenarios with AI characters</div>
+          {[1,2,3,4].map(d=>(
+            <div key={d}>
+              <div style={{fontSize:"10px",color:"#777",fontWeight:700,marginBottom:"6px",marginTop:"14px",letterSpacing:"1px"}}>{labels[d]}</div>
+              {SCENARIOS.filter(s=>s.diff===d).map(sc=>(
+                <Card key={sc.id} onClick={()=>nav("convo",sc)} style={{marginBottom:"6px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                    <span style={{fontSize:"26px"}}>{sc.icon}</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:"13px",fontWeight:700}}>{sc.title}</div>
+                      <div style={{fontSize:"10px",color:"#aaa"}}>{sc.desc}</div>
+                    </div>
+                    <div style={{display:"flex",gap:"2px"}}>
+                      {[0,1,2,3].map(i=><div key={i} style={{width:"5px",height:"5px",borderRadius:"50%",background:i<sc.diff?"#FF6B35":"rgba(255,255,255,0.08)"}} />)}
+                    </div>
+                    {p.scenariosCompleted?.[sc.id]&&<span style={{color:"#34D399"}}>✓</span>}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ══════════════════════════════════════════
+    //  SLANG
+    // ══════════════════════════════════════════
+    function Slang({addXP,nav}) {
+      const [cat,setCat]=useState(null), [data,setData]=useState(null), [loading,setLoading]=useState(false);
+
+      async function load(c) {
+        setCat(c); setLoading(true); setData(null);
+        const d=await askClaudeJSON(SYS_SLANG,`Teach me 6-8 Delhi slang phrases for: ${c.eng} (${c.title}). Make them authentic Delhi Hindi. Include Hinglish. Fun and memorable.`);
+        if(d){setData(d);addXP(15);} setLoading(false);
+      }
+
+      return (
+        <div style={{animation:"fadeIn 0.4s ease-out"}}>
+          <BackBtn onClick={()=>cat?(setCat(null),setData(null)):nav("home")} />
+          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>🔥 दिल्ली की ज़ुबान</div>
+          <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>Learn authentic Delhi slang & street language</div>
+
+          {!cat&&!loading&&(
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px"}}>
+              {SLANG_CATS.map((c,i)=>(
+                <Card key={c.id} onClick={()=>load(c)} style={{textAlign:"center",animation:`slideUp 0.4s ease-out ${i*0.05}s both`}}>
+                  <div style={{fontSize:"30px",marginBottom:"6px"}}>{c.icon}</div>
+                  <div style={{fontSize:"13px",fontWeight:700}}>{c.title}</div>
+                  <div style={{fontSize:"10px",color:"#999"}}>{c.eng}</div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {loading&&<Loader text="दिल्ली slang ला रहा हूँ... 🔥" />}
+
+          {data&&(
+            <div style={{animation:"slideUp 0.4s ease-out"}}>
+              {data.phrases?.map((ph,i)=>(
+                <Card key={i} style={{marginBottom:"8px",animation:`slideUp 0.3s ease-out ${i*0.04}s both`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:"17px",fontWeight:700,marginBottom:"1px"}}>{ph.hindi}</div>
+                      <div style={{fontSize:"12px",color:"#aaa",fontStyle:"italic"}}>{ph.transliteration}</div>
+                      <div style={{fontSize:"12px",color:"#FFD93D",marginTop:"3px",fontWeight:600}}>{ph.meaning}</div>
+                      {ph.literal&&ph.literal!==ph.meaning&&<div style={{fontSize:"10px",color:"#888",marginTop:"1px"}}>Literal: {ph.literal}</div>}
+                    </div>
+                    <Speak text={ph.hindi} />
+                  </div>
+                  <div style={{fontSize:"11px",color:"#aaa",marginTop:"6px",lineHeight:1.5}}>📍 {ph.context}</div>
+                  {ph.example_dialogue&&(
+                    <div style={{marginTop:"6px",padding:"8px",borderRadius:"7px",background:"rgba(255,255,255,0.025)",display:"flex",alignItems:"center",gap:"7px"}}>
+                      <Speak text={ph.example_dialogue.hindi} size={26} />
+                      <div>
+                        <div style={{fontSize:"12px",fontWeight:500}}>{ph.example_dialogue.hindi}</div>
+                        <div style={{fontSize:"10px",color:"#888"}}>{ph.example_dialogue.transliteration}</div>
+                        <div style={{fontSize:"10px",color:"#aaa"}}>{ph.example_dialogue.english}</div>
+                      </div>
+                    </div>
+                  )}
+                  <div style={{display:"inline-block",marginTop:"6px",padding:"2px 7px",borderRadius:"3px",fontSize:"9px",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px",
+                    background:ph.formality==="slang"?"rgba(255,107,53,0.12)":ph.formality==="casual"?"rgba(52,211,153,0.12)":"rgba(138,43,226,0.12)",
+                    color:ph.formality==="slang"?"#FF6B35":ph.formality==="casual"?"#34D399":"#8B5CF6"}}>{ph.formality}</div>
+                </Card>
+              ))}
+              {data.cultural_note&&(
+                <Card style={{background:"rgba(255,193,7,0.05)",border:"1px solid rgba(255,193,7,0.12)",marginTop:"6px"}}>
+                  <div style={{fontSize:"12px",lineHeight:1.6}}>🏙️ <strong>Cultural Note:</strong> {data.cultural_note}</div>
+                </Card>
+              )}
+              <button onClick={()=>load(cat)} style={{width:"100%",padding:"12px",borderRadius:"10px",border:"none",cursor:"pointer",marginTop:"10px",
+                background:"linear-gradient(135deg,#FF6B35,#FFD93D)",color:"#000",fontWeight:700,fontSize:"13px"}}>और दिखाओ · Load More 🔥</button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ══════════════════════════════════════════
+    //  VOCAB
+    // ══════════════════════════════════════════
+    function Vocab({addXP,nav}) {
+      const [data,setData]=useState(null),[loading,setLoading]=useState(false),[qa,setQa]=useState({}),[checked,setChecked]=useState(false);
+
+      async function load() {
+        setLoading(true);setData(null);setQa({});setChecked(false);
+        const theme=VOCAB_THEMES[Math.floor(Math.random()*VOCAB_THEMES.length)];
+        const d=await askClaudeJSON(SYS_VOCAB,`Generate 8 vocabulary words for: "${theme}". Include Delhi variants. Quiz should be challenging. Student is intermediate.`);
+        if(d){setData(d);addXP(10);} setLoading(false);
+      }
+
+      useEffect(()=>{load();},[]);
+
+      function check() {
+        let c=0; data.quiz?.forEach((q,i)=>{if(qa[i]===q.correct) c++;}); addXP(c*10); setChecked(true);
+      }
+
+      return (
+        <div style={{animation:"fadeIn 0.4s ease-out"}}>
+          <BackBtn onClick={()=>nav("home")} />
+          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>📚 शब्द भंडार</div>
+          <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>Build your Delhi Hindi vocabulary</div>
+
+          {loading&&<Loader text="नए शब्द ला रहा हूँ..." />}
+
+          {data&&(
+            <div style={{animation:"slideUp 0.4s ease-out"}}>
+              <Card style={{marginBottom:"14px",background:"rgba(52,211,153,0.05)",border:"1px solid rgba(52,211,153,0.12)"}}>
+                <div style={{fontSize:"13px",fontWeight:700}}>📖 {data.theme}</div>
+              </Card>
+
+              {data.words?.map((w,i)=>(
+                <Card key={i} style={{marginBottom:"7px",animation:`slideUp 0.3s ease-out ${i*0.03}s both`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div>
+                      <div style={{fontSize:"17px",fontWeight:700}}>{w.hindi}</div>
+                      <div style={{fontSize:"11px",color:"#aaa"}}>{w.transliteration} — <span style={{color:"#FFD93D"}}>{w.meaning}</span></div>
+                    </div>
+                    <Speak text={w.hindi} />
+                  </div>
+                  <div style={{marginTop:"6px",padding:"7px",background:"rgba(255,255,255,0.025)",borderRadius:"5px"}}>
+                    <div style={{fontSize:"12px"}}>{w.example_hindi}</div>
+                    <div style={{fontSize:"10px",color:"#888",fontStyle:"italic"}}>{w.example_trans}</div>
+                    <div style={{fontSize:"10px",color:"#aaa"}}>{w.example_eng}</div>
+                  </div>
+                  {w.delhi_variant&&<div style={{fontSize:"10px",color:"#FF6B35",marginTop:"4px"}}>🏙️ Delhi: {w.delhi_variant}</div>}
+                </Card>
+              ))}
+
+              {data.quiz?.length>0&&(
+                <div style={{marginTop:"18px"}}>
+                  <div style={{fontSize:"13px",fontWeight:700,marginBottom:"8px"}}>🧠 Quick Quiz</div>
+                  {data.quiz.map((q,qi)=>(
+                    <Card key={qi} style={{marginBottom:"6px",
+                      border:checked?(qa[qi]===q.correct?"1px solid rgba(52,211,153,0.35)":"1px solid rgba(239,68,68,0.35)"):"1px solid rgba(255,255,255,0.07)"}}>
+                      <div style={{fontSize:"12px",fontWeight:600,marginBottom:"6px"}}>{q.prompt}</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+                        {q.options.map((o,oi)=>(
+                          <button key={oi} onClick={()=>!checked&&setQa({...qa,[qi]:oi})}
+                            style={{padding:"7px 10px",borderRadius:"5px",border:"none",cursor:checked?"default":"pointer",textAlign:"left",fontSize:"11px",
+                              background:checked?(oi===q.correct?"rgba(52,211,153,0.12)":qa[qi]===oi?"rgba(239,68,68,0.12)":"rgba(255,255,255,0.02)")
+                                :(qa[qi]===oi?"rgba(255,107,53,0.12)":"rgba(255,255,255,0.03)"),
+                              color:checked?(oi===q.correct?"#34D399":"#ccc"):(qa[qi]===oi?"#FF6B35":"#ccc")}}>{o}</button>
+                        ))}
+                      </div>
+                    </Card>
+                  ))}
+                  {!checked?(
+                    <button onClick={check} disabled={Object.keys(qa).length<data.quiz.length}
+                      style={{width:"100%",padding:"11px",borderRadius:"9px",border:"none",cursor:"pointer",
+                        background:Object.keys(qa).length>=data.quiz.length?"linear-gradient(135deg,#FF6B35,#FFD93D)":"rgba(255,255,255,0.04)",
+                        color:Object.keys(qa).length>=data.quiz.length?"#000":"#666",fontWeight:700}}>Check ✓</button>
+                  ):(
+                    <button onClick={load} style={{width:"100%",padding:"11px",borderRadius:"9px",border:"none",cursor:"pointer",
+                      background:"linear-gradient(135deg,#FF6B35,#FFD93D)",color:"#000",fontWeight:700}}>Next Set →</button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ══════════════════════════════════════════
+    //  PLAN
+    // ══════════════════════════════════════════
+    function Plan({nav,progress:p}) {
+      const wk=Math.min(Math.ceil((p.lessonsCompleted+1)/5),12);
+      const cur=Math.floor((wk-1)/2);
+      return (
+        <div style={{animation:"fadeIn 0.4s ease-out"}}>
+          <BackBtn onClick={()=>nav("home")} />
+          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>🗺️ 12-Week Roadmap</div>
+          <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>From "kya?" to "arre yaar, pata hai na!" in 90 days</div>
+          {WEEKLY_PLAN.map((ph,i)=>(
+            <Card key={i} style={{marginBottom:"8px",
+              border:i===cur?"1px solid rgba(255,107,53,0.25)":"1px solid rgba(255,255,255,0.05)",
+              background:i<cur?"rgba(52,211,153,0.035)":i===cur?"rgba(255,107,53,0.05)":"rgba(255,255,255,0.015)",
+              animation:`slideUp 0.3s ease-out ${i*0.05}s both`}}>
+              <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                <div style={{width:"34px",height:"34px",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",
+                  fontSize:"13px",fontWeight:800,
+                  background:i<cur?"rgba(52,211,153,0.15)":i===cur?"rgba(255,107,53,0.15)":"rgba(255,255,255,0.05)",
+                  color:i<cur?"#34D399":i===cur?"#FF6B35":"#666"}}>
+                  {i<cur?"✓":`W${ph.week}`}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:"13px",fontWeight:700,color:i===cur?"#FF6B35":i<cur?"#34D399":"#ccc"}}>
+                    {ph.focus}{i===cur?" ← You are here":""}
+                  </div>
+                  <div style={{fontSize:"11px",color:"#888",marginTop:"1px"}}>{ph.goals}</div>
+                </div>
+              </div>
+            </Card>
+          ))}
+          <Card style={{marginTop:"12px",background:"rgba(255,193,7,0.05)",border:"1px solid rgba(255,193,7,0.12)"}}>
+            <div style={{fontSize:"12px",lineHeight:1.6}}>
+              <strong>🎯 Daily Goal:</strong> 2-3 listening exercises + 1 conversation + slang review. ~20-30 min/day. Consistency beats intensity, yaar!
+            </div>
+          </Card>
+        </div>
+      );
+    }
+
+    // ══════════════════════════════════════════
+    //  PROGRESS/STATS
+    // ══════════════════════════════════════════
+    function Stats({progress:p,nav}) {
+      const lv=getLevel(p.xp), nx=getNext(p.xp);
+      const acc=p.listeningTotal>0?Math.round((p.listeningScore/p.listeningTotal)*100):0;
+
+      function reset() {
+        if(confirm("Reset all progress? Cannot be undone!")){
+          localStorage.removeItem(STORAGE_KEY); window.location.reload();
+        }
+      }
+      function changeKey() {
+        if(confirm("Change API key? You'll need to re-enter it.")){
+          clearApiKey(); window.location.reload();
+        }
+      }
+
+      return (
+        <div style={{animation:"fadeIn 0.4s ease-out"}}>
+          <BackBtn onClick={()=>nav("home")} />
+          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"14px"}}>📊 Your Progress</div>
+          <Card style={{textAlign:"center",marginBottom:"14px",background:"linear-gradient(135deg,rgba(255,107,53,0.08),rgba(138,43,226,0.06))",border:"1px solid rgba(255,107,53,0.16)"}}>
+            <div style={{fontSize:"44px",marginBottom:"6px"}}>{lv.emoji}</div>
+            <div style={{fontSize:"19px",fontWeight:800}}>{lv.name}</div>
+            <div style={{fontSize:"12px",color:"#aaa"}}>{lv.eng}</div>
+            <div style={{fontSize:"26px",fontWeight:800,color:"#FFD93D",marginTop:"6px"}}>{p.xp} XP</div>
+            {nx&&<div style={{fontSize:"11px",color:"#888",marginTop:"3px"}}>{nx.xp-p.xp} XP to {nx.eng}</div>}
+          </Card>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px",marginBottom:"14px"}}>
+            {[
+              {ic:"🔥",v:p.streak,l:"Day Streak"},{ic:"📖",v:p.lessonsCompleted,l:"Lessons"},
+              {ic:"💬",v:p.conversationCount,l:"Conversations"},{ic:"🎯",v:`${acc}%`,l:"Listen Accuracy"},
+              {ic:"🧠",v:p.vocabMastered.length,l:"Words Mastered"},{ic:"⚡",v:p.dailyXp,l:"XP Today"},
+            ].map((s,i)=>(
+              <Card key={i} style={{textAlign:"center",padding:"12px"}}>
+                <div style={{fontSize:"18px"}}>{s.ic}</div>
+                <div style={{fontSize:"20px",fontWeight:800,color:"#FF6B35",marginTop:"3px"}}>{s.v}</div>
+                <div style={{fontSize:"9px",color:"#888"}}>{s.l}</div>
+              </Card>
+            ))}
+          </div>
+
+          <Card style={{marginBottom:"14px"}}>
+            <div style={{fontSize:"12px",fontWeight:700,marginBottom:"8px"}}>Level Journey</div>
+            {LEVELS.map((l,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:"8px",padding:"4px 0",opacity:p.xp>=l.xp?1:0.35}}>
+                <span style={{fontSize:"16px"}}>{l.emoji}</span>
+                <div style={{flex:1}}><div style={{fontSize:"11px",fontWeight:600}}>{l.name} · {l.eng}</div><div style={{fontSize:"9px",color:"#888"}}>{l.xp} XP</div></div>
+                {p.xp>=l.xp&&<span style={{color:"#34D399",fontSize:"12px"}}>✓</span>}
+              </div>
+            ))}
+          </Card>
+
+          <button onClick={reset} style={{width:"100%",padding:"9px",borderRadius:"7px",border:"1px solid rgba(239,68,68,0.15)",background:"transparent",color:"#888",fontSize:"11px",cursor:"pointer"}}>
+            Reset Progress
+          </button>
+          <button onClick={changeKey} style={{width:"100%",padding:"9px",borderRadius:"7px",border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"#666",fontSize:"11px",cursor:"pointer",marginTop:"6px"}}>
+            🔑 Change API Key
+          </button>
+        </div>
+      );
+    }
+
+    // ══════════════════════════════════════════
+    //  API KEY SETUP
+    // ══════════════════════════════════════════
+    function ApiKeySetup({onSave}) {
+      const [key,setKey]=useState("");
+      const [testing,setTesting]=useState(false);
+      const [error,setError]=useState("");
+
+      async function test() {
+        if(!key.trim()) return;
+        setTesting(true); setError("");
+        try {
+          const res = await fetch(API_URL, {
+            method:"POST",
+            headers:{
+              "Content-Type":"application/json",
+              "x-api-key":key.trim(),
+              "anthropic-version":"2023-06-01",
+              "anthropic-dangerous-direct-browser-access":"true",
+            },
+            body:JSON.stringify({model:MODEL,max_tokens:50,messages:[{role:"user",content:"Say 'namaste' in one word"}]}),
+          });
+          if(res.ok) { setApiKey(key.trim()); onSave(); }
+          else { const d=await res.json(); setError(d.error?.message||`Error ${res.status}. Check your key.`); }
+        } catch(e) { setError("Network error. Check your connection."); }
+        setTesting(false);
+      }
+
+      return (
+        <div style={{minHeight:"100vh",position:"relative"}}>
+          <BG />
+          <div style={{position:"relative",zIndex:1,maxWidth:"480px",margin:"0 auto",padding:"60px 20px",animation:"fadeIn 0.6s ease-out"}}>
+            <div style={{textAlign:"center",marginBottom:"40px"}}>
+              <div style={{fontSize:"56px",marginBottom:"12px"}}>🏙️</div>
+              <div style={{fontSize:"32px",fontWeight:900,background:"linear-gradient(135deg,#FF6B35,#FFD93D)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>दिल्ली गुरु</div>
+              <div style={{fontSize:"11px",color:"#888",letterSpacing:"3px",textTransform:"uppercase",marginTop:"4px"}}>Delhi Hindi Mastery</div>
+              <div style={{fontSize:"14px",color:"#aaa",marginTop:"16px",lineHeight:1.7}}>
+                AI-powered Hindi learning app.<br/>Speak like a Delhiite in 3 months.
+              </div>
+            </div>
+
+            <Card style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)"}}>
+              <div style={{fontSize:"14px",fontWeight:700,marginBottom:"4px"}}>🔑 Enter your Anthropic API Key</div>
+              <div style={{fontSize:"11px",color:"#888",marginBottom:"16px",lineHeight:1.5}}>
+                This app uses Claude AI to generate all exercises dynamically.<br/>
+                Your key is stored locally in your browser only — never sent anywhere else.
+                <br/><br/>
+                Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style={{color:"#FF6B35",textDecoration:"underline"}}>console.anthropic.com</a>
+              </div>
+
+              <input
+                type="password" value={key} onChange={e=>setKey(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&test()}
+                placeholder="sk-ant-api03-..."
+                style={{width:"100%",padding:"12px 14px",borderRadius:"10px",border:"1px solid rgba(255,255,255,0.12)",
+                  background:"rgba(255,255,255,0.04)",color:"#e8e8e8",fontSize:"13px",outline:"none",marginBottom:"12px",
+                  fontFamily:"monospace"}}
+              />
+
+              {error && <div style={{fontSize:"12px",color:"#EF4444",marginBottom:"10px",padding:"8px",background:"rgba(239,68,68,0.08)",borderRadius:"6px"}}>⚠️ {error}</div>}
+
+              <button onClick={test} disabled={!key.trim()||testing}
+                style={{width:"100%",padding:"13px",borderRadius:"10px",border:"none",cursor:"pointer",
+                  background:key.trim()?"linear-gradient(135deg,#FF6B35,#FFD93D)":"rgba(255,255,255,0.05)",
+                  color:key.trim()?"#000":"#666",fontWeight:700,fontSize:"14px",transition:"all 0.2s"}}>
+                {testing?"Verifying... एक सेकंड":"चलो शुरू करें → Start Learning"}
+              </button>
+            </Card>
+
+            <div style={{textAlign:"center",marginTop:"24px",fontSize:"11px",color:"#555",lineHeight:1.6}}>
+              ⚡ Uses Claude Sonnet · ~$0.20-0.50/day with regular practice<br/>
+              🔒 Key stored in localStorage only · Never leaves your browser
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ══════════════════════════════════════════
+    //  ROOT APP
+    // ══════════════════════════════════════════
+    function App() {
+      const [hasKey,setHasKey]=useState(!!getApiKey());
+      const [screen,setScreen]=useState("home");
+      const [sub,setSub]=useState(null);
+      const [progress,setProgress]=useState(()=>loadProgress());
+
+      // If no API key, show setup
+      if (!hasKey) return <ApiKeySetup onSave={()=>setHasKey(true)} />;
+
+      // streak check on load
+      useEffect(()=>{
+        const today=new Date().toDateString();
+        if(progress.lastActive && progress.lastActive!==today){
+          const diff=(new Date(today)-new Date(progress.lastActive))/86400000;
+          if(diff>1) setProgress(p=>({...p,streak:0,dailyXp:0,dailyLessons:0}));
+          else setProgress(p=>({...p,dailyXp:0,dailyLessons:0}));
+        }
+        window.speechSynthesis?.getVoices();
+      },[]);
+
+      const saveP = useCallback(updates=>{
+        setProgress(prev=>{
+          const next={...prev,...updates,lastActive:new Date().toDateString()};
+          persistProgress(next); return next;
+        });
+      },[]);
+
+      const addXP = useCallback(amt=>{
+        setProgress(prev=>{
+          const today=new Date().toDateString();
+          const isNew=prev.lastActive!==today;
+          const next={...prev,xp:prev.xp+amt,dailyXp:(isNew?0:prev.dailyXp)+amt,streak:isNew?prev.streak+1:prev.streak,lastActive:today};
+          persistProgress(next); return next;
+        });
+      },[]);
+
+      const nav = (s,d=null)=>{ setScreen(s); setSub(d); window.scrollTo(0,0); };
+
+      return (
+        <div style={{minHeight:"100vh",position:"relative"}}>
+          <BG />
+          <div style={{position:"relative",zIndex:1,maxWidth:"660px",margin:"0 auto",padding:"14px 14px 96px"}}>
+            {/* Header */}
+            <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 0",marginBottom:"4px",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:"10px",cursor:"pointer"}} onClick={()=>nav("home")}>
+                <span style={{fontSize:"26px"}}>🏙️</span>
+                <div>
+                  <div style={{fontSize:"17px",fontWeight:800,background:"linear-gradient(135deg,#FF6B35,#FFD93D)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>दिल्ली गुरु</div>
+                  <div style={{fontSize:"9px",color:"#888",letterSpacing:"2px",textTransform:"uppercase"}}>Delhi Hindi Mastery</div>
+                </div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:"10px",color:"#888"}}>🔥 {progress.streak} day streak</div>
+                <div style={{fontSize:"10px",color:"#FFD93D"}}>⚡ {progress.dailyXp} XP today</div>
+              </div>
+            </header>
+            <XPBar xp={progress.xp} />
+
+            {screen==="home"&&<Home progress={progress} nav={nav} />}
+            {screen==="listen"&&<Listen addXP={addXP} saveP={saveP} progress={progress} nav={nav} />}
+            {screen==="convo"&&<Convo addXP={addXP} saveP={saveP} progress={progress} nav={nav} scenario={sub} />}
+            {screen==="scenarios"&&<ScenariosList nav={nav} progress={progress} />}
+            {screen==="slang"&&<Slang addXP={addXP} nav={nav} />}
+            {screen==="vocab"&&<Vocab addXP={addXP} nav={nav} />}
+            {screen==="plan"&&<Plan nav={nav} progress={progress} />}
+            {screen==="progress"&&<Stats progress={progress} nav={nav} />}
+          </div>
+
+          {/* Bottom Nav */}
+          <nav style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10,background:"rgba(10,10,15,0.95)",backdropFilter:"blur(20px)",
+            borderTop:"1px solid rgba(255,255,255,0.05)",display:"flex",justifyContent:"center",padding:"7px 0 env(safe-area-inset-bottom, 7px)"}}>
+            <div style={{display:"flex",gap:"3px",maxWidth:"480px",width:"100%"}}>
+              {[
+                {id:"home",ic:"🏠",l:"Home"},{id:"listen",ic:"👂",l:"Listen"},{id:"scenarios",ic:"🗣️",l:"Talk"},
+                {id:"slang",ic:"🔥",l:"Slang"},{id:"progress",ic:"📊",l:"Stats"},
+              ].map(t=>(
+                <button key={t.id} onClick={()=>nav(t.id)}
+                  style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:"1px",padding:"7px 3px",border:"none",borderRadius:"10px",cursor:"pointer",
+                    background:screen===t.id?"rgba(255,107,53,0.12)":"transparent",color:screen===t.id?"#FF6B35":"#555",fontSize:"17px",transition:"all 0.2s"}}>
+                  <span>{t.ic}</span>
+                  <span style={{fontSize:"8px",fontWeight:600,letterSpacing:"0.5px"}}>{t.l}</span>
+                </button>
+              ))}
+            </div>
+          </nav>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
