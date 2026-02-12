@@ -48,13 +48,16 @@
     // ══════════════════════════════════════════
     //  CONFIG
     // ══════════════════════════════════════════
-    const API_URL = "https://api.anthropic.com/v1/messages";
-    const MODEL = "claude-sonnet-4-20250514";
+    const GEMINI_MODEL = "gemini-2.0-flash";
     const API_KEY_STORAGE = "delhiguru_api_key";
 
     function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ""; }
     function setApiKey(k) { localStorage.setItem(API_KEY_STORAGE, k); }
     function clearApiKey() { localStorage.removeItem(API_KEY_STORAGE); }
+
+    function geminiUrl(model) {
+      return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${getApiKey()}`;
+    }
 
     // ══════════════════════════════════════════
     //  DATA
@@ -162,19 +165,18 @@
       const key = getApiKey();
       if (!key) return null;
       try {
-        const res = await fetch(API_URL, {
+        const res = await fetch(geminiUrl(GEMINI_MODEL), {
           method:"POST",
-          headers:{
-            "Content-Type":"application/json",
-            "x-api-key": key,
-            "anthropic-version":"2023-06-01",
-            "anthropic-dangerous-direct-browser-access":"true",
-          },
-          body: JSON.stringify({ model:MODEL, max_tokens:maxTok, system:sys, messages:[{role:"user",content:user}] }),
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({
+            system_instruction: {parts:[{text:sys}]},
+            contents: [{role:"user", parts:[{text:user}]}],
+            generationConfig: {maxOutputTokens:maxTok, temperature:0.9},
+          }),
         });
-        if (res.status === 401) { clearApiKey(); window.location.reload(); return null; }
+        if (res.status === 401 || res.status === 403) { clearApiKey(); window.location.reload(); return null; }
         const d = await res.json();
-        return d.content?.map(b => b.text||"").join("") || null;
+        return d.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || null;
       } catch(e) { console.error(e); return null; }
     }
     async function askClaudeJSON(sys, user, maxTok = 1000) {
@@ -187,19 +189,22 @@
       const key = getApiKey();
       if (!key) return null;
       try {
-        const res = await fetch(API_URL, {
+        const contents = messages.map(m => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{text: m.content}],
+        }));
+        const res = await fetch(geminiUrl(GEMINI_MODEL), {
           method:"POST",
-          headers:{
-            "Content-Type":"application/json",
-            "x-api-key": key,
-            "anthropic-version":"2023-06-01",
-            "anthropic-dangerous-direct-browser-access":"true",
-          },
-          body: JSON.stringify({ model:MODEL, max_tokens:maxTok, system:sys, messages }),
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({
+            system_instruction: {parts:[{text:sys}]},
+            contents,
+            generationConfig: {maxOutputTokens:maxTok, temperature:0.9},
+          }),
         });
-        if (res.status === 401) { clearApiKey(); window.location.reload(); return null; }
+        if (res.status === 401 || res.status === 403) { clearApiKey(); window.location.reload(); return null; }
         const d = await res.json();
-        return d.content?.map(b => b.text||"").join("") || null;
+        return d.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || null;
       } catch(e) { console.error(e); return null; }
     }
 
@@ -963,15 +968,14 @@ KEY RULES:
         if(!key.trim()) return;
         setTesting(true); setError("");
         try {
-          const res = await fetch(API_URL, {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key.trim()}`;
+          const res = await fetch(url, {
             method:"POST",
-            headers:{
-              "Content-Type":"application/json",
-              "x-api-key":key.trim(),
-              "anthropic-version":"2023-06-01",
-              "anthropic-dangerous-direct-browser-access":"true",
-            },
-            body:JSON.stringify({model:MODEL,max_tokens:50,messages:[{role:"user",content:"Say 'namaste' in one word"}]}),
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+              contents:[{role:"user",parts:[{text:"Say namaste in one word"}]}],
+              generationConfig:{maxOutputTokens:20},
+            }),
           });
           if(res.ok) { setApiKey(key.trim()); onSave(); }
           else { const d=await res.json(); setError(d.error?.message||`Error ${res.status}. Check your key.`); }
@@ -993,18 +997,18 @@ KEY RULES:
             </div>
 
             <Card style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)"}}>
-              <div style={{fontSize:"14px",fontWeight:700,marginBottom:"4px"}}>🔑 Enter your Anthropic API Key</div>
+              <div style={{fontSize:"14px",fontWeight:700,marginBottom:"4px"}}>🔑 Enter your Google Gemini API Key</div>
               <div style={{fontSize:"11px",color:"#888",marginBottom:"16px",lineHeight:1.5}}>
-                This app uses Claude AI to generate all exercises dynamically.<br/>
+                This app uses Google Gemini AI to generate all exercises dynamically.<br/>
                 Your key is stored locally in your browser only — never sent anywhere else.
                 <br/><br/>
-                Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style={{color:"#FF6B35",textDecoration:"underline"}}>console.anthropic.com</a>
+                Get a FREE key at <a href="https://aistudio.google.com/apikey" target="_blank" style={{color:"#FF6B35",textDecoration:"underline"}}>aistudio.google.com/apikey</a>
               </div>
 
               <input
                 type="password" value={key} onChange={e=>setKey(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&test()}
-                placeholder="sk-ant-api03-..."
+                placeholder="AIzaSy..."
                 style={{width:"100%",padding:"12px 14px",borderRadius:"10px",border:"1px solid rgba(255,255,255,0.12)",
                   background:"rgba(255,255,255,0.04)",color:"#e8e8e8",fontSize:"13px",outline:"none",marginBottom:"12px",
                   fontFamily:"monospace"}}
@@ -1021,7 +1025,7 @@ KEY RULES:
             </Card>
 
             <div style={{textAlign:"center",marginTop:"24px",fontSize:"11px",color:"#555",lineHeight:1.6}}>
-              ⚡ Uses Claude Sonnet · ~$0.20-0.50/day with regular practice<br/>
+              ⚡ Powered by Gemini Flash · FREE with Google API key<br/>
               🔒 Key stored in localStorage only · Never leaves your browser
             </div>
           </div>
