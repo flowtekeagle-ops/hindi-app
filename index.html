@@ -46,18 +46,15 @@
     const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
     // ══════════════════════════════════════════
-    //  CONFIG
+    //  CONFIG — GROQ (FREE, FAST)
     // ══════════════════════════════════════════
-    const GEMINI_MODEL = "gemini-2.0-flash";
+    const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+    const GROQ_MODEL = "llama-3.3-70b-versatile";
     const API_KEY_STORAGE = "delhiguru_api_key";
 
     function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ""; }
     function setApiKey(k) { localStorage.setItem(API_KEY_STORAGE, k); }
     function clearApiKey() { localStorage.removeItem(API_KEY_STORAGE); }
-
-    function geminiUrl(model) {
-      return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${getApiKey()}`;
-    }
 
     // ══════════════════════════════════════════
     //  DATA
@@ -165,18 +162,17 @@
       const key = getApiKey();
       if (!key) return null;
       try {
-        const res = await fetch(geminiUrl(GEMINI_MODEL), {
+        const res = await fetch(GROQ_URL, {
           method:"POST",
-          headers:{"Content-Type":"application/json"},
+          headers:{"Content-Type":"application/json","Authorization":`Bearer ${key}`},
           body: JSON.stringify({
-            system_instruction: {parts:[{text:sys}]},
-            contents: [{role:"user", parts:[{text:user}]}],
-            generationConfig: {maxOutputTokens:maxTok, temperature:0.9},
+            model:GROQ_MODEL, max_tokens:maxTok, temperature:0.9,
+            messages:[{role:"system",content:sys},{role:"user",content:user}],
           }),
         });
-        if (res.status === 401 || res.status === 403) { clearApiKey(); window.location.reload(); return null; }
+        if (res.status === 401) { clearApiKey(); window.location.reload(); return null; }
         const d = await res.json();
-        return d.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || null;
+        return d.choices?.[0]?.message?.content || null;
       } catch(e) { console.error(e); return null; }
     }
     async function askClaudeJSON(sys, user, maxTok = 1000) {
@@ -189,22 +185,15 @@
       const key = getApiKey();
       if (!key) return null;
       try {
-        const contents = messages.map(m => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{text: m.content}],
-        }));
-        const res = await fetch(geminiUrl(GEMINI_MODEL), {
+        const msgs = [{role:"system",content:sys}, ...messages];
+        const res = await fetch(GROQ_URL, {
           method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({
-            system_instruction: {parts:[{text:sys}]},
-            contents,
-            generationConfig: {maxOutputTokens:maxTok, temperature:0.9},
-          }),
+          headers:{"Content-Type":"application/json","Authorization":`Bearer ${key}`},
+          body: JSON.stringify({model:GROQ_MODEL, max_tokens:maxTok, temperature:0.9, messages:msgs}),
         });
-        if (res.status === 401 || res.status === 403) { clearApiKey(); window.location.reload(); return null; }
+        if (res.status === 401) { clearApiKey(); window.location.reload(); return null; }
         const d = await res.json();
-        return d.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || null;
+        return d.choices?.[0]?.message?.content || null;
       } catch(e) { console.error(e); return null; }
     }
 
@@ -968,13 +957,12 @@ KEY RULES:
         if(!key.trim()) return;
         setTesting(true); setError("");
         try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key.trim()}`;
-          const res = await fetch(url, {
+          const res = await fetch(GROQ_URL, {
             method:"POST",
-            headers:{"Content-Type":"application/json"},
+            headers:{"Content-Type":"application/json","Authorization":`Bearer ${key.trim()}`},
             body:JSON.stringify({
-              contents:[{role:"user",parts:[{text:"Say namaste in one word"}]}],
-              generationConfig:{maxOutputTokens:20},
+              model:GROQ_MODEL, max_tokens:20,
+              messages:[{role:"user",content:"Say namaste in one word"}],
             }),
           });
           if(res.ok) { setApiKey(key.trim()); onSave(); }
@@ -997,18 +985,18 @@ KEY RULES:
             </div>
 
             <Card style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)"}}>
-              <div style={{fontSize:"14px",fontWeight:700,marginBottom:"4px"}}>🔑 Enter your Google Gemini API Key</div>
+              <div style={{fontSize:"14px",fontWeight:700,marginBottom:"4px"}}>🔑 Enter your Groq API Key</div>
               <div style={{fontSize:"11px",color:"#888",marginBottom:"16px",lineHeight:1.5}}>
-                This app uses Google Gemini AI to generate all exercises dynamically.<br/>
-                Your key is stored locally in your browser only — never sent anywhere else.
+                This app uses Groq AI (Llama 3.3 70B) to generate all exercises.<br/>
+                Your key is stored locally in your browser — never sent anywhere else.
                 <br/><br/>
-                Get a FREE key at <a href="https://aistudio.google.com/apikey" target="_blank" style={{color:"#FF6B35",textDecoration:"underline"}}>aistudio.google.com/apikey</a>
+                Get a FREE key at <a href="https://console.groq.com/keys" target="_blank" style={{color:"#FF6B35",textDecoration:"underline"}}>console.groq.com/keys</a> (takes 10 seconds)
               </div>
 
               <input
                 type="password" value={key} onChange={e=>setKey(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&test()}
-                placeholder="AIzaSy..."
+                placeholder="gsk_..."
                 style={{width:"100%",padding:"12px 14px",borderRadius:"10px",border:"1px solid rgba(255,255,255,0.12)",
                   background:"rgba(255,255,255,0.04)",color:"#e8e8e8",fontSize:"13px",outline:"none",marginBottom:"12px",
                   fontFamily:"monospace"}}
@@ -1025,7 +1013,7 @@ KEY RULES:
             </Card>
 
             <div style={{textAlign:"center",marginTop:"24px",fontSize:"11px",color:"#555",lineHeight:1.6}}>
-              ⚡ Powered by Gemini Flash · FREE with Google API key<br/>
+              ⚡ Powered by Groq + Llama 3.3 70B · 100% FREE<br/>
               🔒 Key stored in localStorage only · Never leaves your browser
             </div>
           </div>
