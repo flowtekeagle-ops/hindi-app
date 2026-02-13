@@ -1,1119 +1,610 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>दिल्ली गुरु — Delhi Hindi Mastery</title>
-  <meta name="description" content="Learn authentic Delhi Hindi in 3 months. AI-powered listening, conversation, slang & vocabulary training." />
-  <meta name="theme-color" content="#0a0a0f" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { -webkit-text-size-adjust: 100%; }
-    body {
-      font-family: 'Outfit', 'Noto Sans Devanagari', system-ui, sans-serif;
-      background: #0a0a0f; color: #e8e8e8;
-      overflow-x: hidden; min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-    }
-    #root { min-height: 100vh; }
-    ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.25); border-radius: 3px; }
-    input, textarea, button { font-family: inherit; }
-    a { color: inherit; text-decoration: none; }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes popIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
-    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-    @keyframes bgDrift { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(-1%,-0.5%) scale(1.01); } 100% { transform: translate(0,0) scale(1); } }
-    @keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
-    @keyframes bounceIn { 0% { transform: scale(0); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
-  </style>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<title>दिल्ली गुरु — Delhi Hindi Mastery</title>
+<meta name="theme-color" content="#0a0a0f"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit','Noto Sans Devanagari',system-ui,sans-serif;background:#0a0a0f;color:#e8e8e8;overflow-x:hidden;min-height:100vh;-webkit-font-smoothing:antialiased}
+#root{min-height:100vh}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:rgba(255,107,53,0.25);border-radius:3px}
+input,textarea,button{font-family:inherit}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
+@keyframes bgDrift{0%{transform:translate(0,0)}50%{transform:translate(-1%,-0.5%)}100%{transform:translate(0,0)}}
+</style>
 </head>
 <body>
-  <div id="root"></div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.5/babel.min.js"></script>
-
-  <script type="text/babel" data-type="module">
-    const { useState, useEffect, useRef, useCallback, useMemo } = React;
-
-    // ══════════════════════════════════════════
-    //  CONFIG — GROQ (FREE, FAST)
-    // ══════════════════════════════════════════
-    const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-    const GROQ_MODEL = "llama-3.3-70b-versatile";
-    const API_KEY_STORAGE = "delhiguru_api_key";
-
-    function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ""; }
-    function setApiKey(k) { localStorage.setItem(API_KEY_STORAGE, k); }
-    function clearApiKey() { localStorage.removeItem(API_KEY_STORAGE); }
-
-    // ══════════════════════════════════════════
-    //  DATA
-    // ══════════════════════════════════════════
-    const LEVELS = [
-      { name:"पहला कदम", eng:"First Steps",   xp:0,    emoji:"🚶" },
-      { name:"यात्री",    eng:"Traveler",      xp:300,  emoji:"🛺" },
-      { name:"दोस्त",    eng:"Friend",        xp:800,  emoji:"🤝" },
-      { name:"दिल्लीवाला",eng:"Delhiite",     xp:1500, emoji:"🏙️" },
-      { name:"चटोरा",    eng:"Foodie Local",  xp:2500, emoji:"🍛" },
-      { name:"पक्का दिल्लीवाला",eng:"True Delhiite",xp:4000,emoji:"⭐"},
-      { name:"उस्ताद",   eng:"Master",        xp:6000, emoji:"👑" },
-    ];
-
-    const SCENARIOS = [
-      { id:"auto",    icon:"🛺", title:"ऑटो वाला",        eng:"Auto Rickshaw",    desc:"Negotiate fares, give directions",                diff:1 },
-      { id:"chai",    icon:"☕", title:"चाय की दुकान",     eng:"Chai Stall",       desc:"Order chai, small talk with locals",              diff:1 },
-      { id:"metro",   icon:"🚇", title:"दिल्ली मेट्रो",    eng:"Delhi Metro",      desc:"Ask for directions, buy tokens",                  diff:1 },
-      { id:"market",  icon:"🛍️",title:"सरोजिनी नगर",     eng:"Street Market",    desc:"Haggle prices, ask about products",               diff:2 },
-      { id:"food",    icon:"🍽️",title:"ढाबा / रेस्टोरेंट",eng:"Restaurant",       desc:"Order food, ask for recommendations",             diff:2 },
-      { id:"landlord",icon:"🏠", title:"मकान मालिक",      eng:"Landlord",         desc:"Rent negotiation, complaints",                    diff:2 },
-      { id:"office",  icon:"💼", title:"ऑफिस चैट",        eng:"Office Talk",      desc:"Workplace conversations, meetings",               diff:3 },
-      { id:"party",   icon:"🎉", title:"पार्टी / मेहमान",   eng:"Social Gathering", desc:"Introductions, gossip, making plans",             diff:3 },
-      { id:"doctor",  icon:"🏥", title:"डॉक्टर",           eng:"Doctor Visit",     desc:"Describe symptoms, understand advice",            diff:3 },
-      { id:"phone",   icon:"📱", title:"फोन पर बात",      eng:"Phone Call",       desc:"Customer service, booking, complaints",           diff:3 },
-      { id:"wedding", icon:"💒", title:"शादी",             eng:"Wedding",          desc:"Wedding customs, family conversations",           diff:4 },
-      { id:"politics",icon:"🗳️",title:"चाय पे चर्चा",     eng:"Tea & Politics",   desc:"Debate current affairs like a local",             diff:4 },
-    ];
-
-    const SLANG_CATS = [
-      { id:"greetings",  title:"अभिवादन",    eng:"Greetings & Reactions",  icon:"👋" },
-      { id:"emotions",   title:"भावनाएं",     eng:"Emotions & Expressions", icon:"😤" },
-      { id:"food",       title:"खाना-पीना",   eng:"Food Talk",              icon:"🍕" },
-      { id:"insults",    title:"गालियाँ (lite)",eng:"Playful Insults",       icon:"😜" },
-      { id:"compliments",title:"तारीफ़",      eng:"Compliments",            icon:"✨" },
-      { id:"bargaining", title:"मोल-भाव",     eng:"Bargaining",             icon:"💰" },
-    ];
-
-    const WEEKLY_PLAN = [
-      { week:"1-2",  focus:"Survival Basics",    goals:"Auto rides, ordering food, metro navigation, basic greetings" },
-      { week:"3-4",  focus:"Market & Social",     goals:"Haggling, small talk, phone calls, expressing opinions" },
-      { week:"5-6",  focus:"Conversational Flow", goals:"Storytelling, jokes, Delhi slang, cultural references" },
-      { week:"7-8",  focus:"Complex Scenarios",   goals:"Complaints, negotiations, emotional expression, idioms" },
-      { week:"9-10", focus:"Cultural Fluency",    goals:"Politics, weddings, family dynamics, workplace Hindi" },
-      { week:"11-12",focus:"Delhi Native Mode",   goals:"Rapid-fire conversations, humor, sarcasm, local references" },
-    ];
-
-    const LISTEN_TOPICS = [
-      { id:"auto",   label:"🛺 Auto Ride",     prompt:"auto rickshaw ride negotiation and travel in Delhi" },
-      { id:"market", label:"🛍️ Market Talk",   prompt:"shopping at Sarojini Nagar or Chandni Chowk" },
-      { id:"food",   label:"🍛 Food Order",    prompt:"ordering street food or at a Delhi dhaba" },
-      { id:"metro",  label:"🚇 Metro Chat",    prompt:"conversation in Delhi Metro about directions or daily life" },
-      { id:"friends",label:"🤝 Friend Chat",   prompt:"casual conversation between Delhi friends about weekend plans" },
-      { id:"phone",  label:"📱 Phone Call",     prompt:"a phone call to book something or complain" },
-      { id:"news",   label:"📰 News / Cricket", prompt:"friends discussing news or cricket at a chai stall" },
-      { id:"family", label:"👨‍👩‍👧‍👦 Family Talk",prompt:"family conversation at home about daily matters" },
-    ];
-
-    const VOCAB_THEMES = [
-      "Delhi street food vocabulary","Delhi metro and transportation words","emotions and reactions in Delhi Hindi",
-      "numbers bargaining and money talk","time weather and daily routine words","family relationships in Hindi",
-      "technology and modern life Hindi","Delhi places and landmarks vocabulary","clothing and fashion for shopping",
-      "work and office Hindi vocabulary",
-    ];
-
-    // ══════════════════════════════════════════
-    //  HELPERS
-    // ══════════════════════════════════════════
-    const getLevel = xp => { let l = LEVELS[0]; for (const v of LEVELS) if (xp >= v.xp) l = v; return l; };
-    const getNext  = xp => LEVELS.find(l => xp < l.xp) || null;
-
-    const STORAGE_KEY = "delhiguru_progress";
-    const DEFAULT_PROGRESS = {
-      xp:0, streak:0, lastActive:null, lessonsCompleted:0,
-      scenariosCompleted:{}, vocabMastered:[], slangLearned:[],
-      dailyXp:0, dailyLessons:0, conversationCount:0,
-      listeningScore:0, listeningTotal:0,
-    };
-
-    function loadProgress() {
-      try { const d = localStorage.getItem(STORAGE_KEY); return d ? {...DEFAULT_PROGRESS, ...JSON.parse(d)} : {...DEFAULT_PROGRESS}; }
-      catch { return {...DEFAULT_PROGRESS}; }
-    }
-    function persistProgress(p) {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch {}
-    }
-
-    // ──── TTS ────
-    function speakHindi(text, rate = 0.85) {
-      return new Promise(r => {
-        if (!window.speechSynthesis) { r(); return; }
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        const v = window.speechSynthesis.getVoices();
-        const hi = v.find(x => x.lang.startsWith("hi")) || v.find(x => x.lang.includes("hi"));
-        if (hi) u.voice = hi;
-        u.lang = "hi-IN"; u.rate = rate; u.pitch = 1.05;
-        u.onend = r; u.onerror = r;
-        window.speechSynthesis.speak(u);
-      });
-    }
-
-    // ──── Claude API ────
-    async function askClaude(sys, user, maxTok = 1000) {
-      const key = getApiKey();
-      if (!key) return null;
-      try {
-        const res = await fetch(GROQ_URL, {
-          method:"POST",
-          headers:{"Content-Type":"application/json","Authorization":`Bearer ${key}`},
-          body: JSON.stringify({
-            model:GROQ_MODEL, max_tokens:maxTok, temperature:0.9,
-            messages:[{role:"system",content:sys},{role:"user",content:user}],
-          }),
-        });
-        if (res.status === 401) { clearApiKey(); window.location.reload(); return null; }
-        const d = await res.json();
-        return d.choices?.[0]?.message?.content || null;
-      } catch(e) { console.error(e); return null; }
-    }
-    async function askClaudeJSON(sys, user, maxTok = 1000) {
-      const raw = await askClaude(sys+"\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown backticks, no preamble.", user, maxTok);
-      if (!raw) return null;
-      try { return JSON.parse(raw.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim()); }
-      catch { console.error("JSON parse fail:", raw?.slice(0,200)); return null; }
-    }
-    async function askClaudeMulti(sys, messages, maxTok = 800) {
-      const key = getApiKey();
-      if (!key) return null;
-      try {
-        const msgs = [{role:"system",content:sys}, ...messages];
-        const res = await fetch(GROQ_URL, {
-          method:"POST",
-          headers:{"Content-Type":"application/json","Authorization":`Bearer ${key}`},
-          body: JSON.stringify({model:GROQ_MODEL, max_tokens:maxTok, temperature:0.9, messages:msgs}),
-        });
-        if (res.status === 401) { clearApiKey(); window.location.reload(); return null; }
-        const d = await res.json();
-        return d.choices?.[0]?.message?.content || null;
-      } catch(e) { console.error(e); return null; }
-    }
-
-    // ──── System prompts ────
-    const SYS = `You are "दिल्ली गुरु" (Delhi Guru), a fun, witty Hindi language tutor who speaks in authentic Delhi Hindi style.
-The student can read/write Hindi but only understands 40-50% of spoken Hindi. They want to become conversationally fluent with a Delhi accent in 3 months.
-KEY RULES:
-- Use Delhi colloquialisms naturally (yaar, bhai, chal, arre, accha, matlab, basically, etc.)
-- Mix Hindi-English (Hinglish) naturally as real Delhiites do
-- Always provide: Hindi (Devanagari) + Transliteration (Roman) + English meaning
-- Be encouraging but push the student to understand more each time
-- Use humor and Delhi cultural references
-- Focus on LISTENING comprehension`;
-
-    const SYS_CONVO = SYS + `\n\nYou are roleplaying a specific Delhi scenario. Stay in character.\nAfter each exchange provide:\n1. Hindi (Devanagari)\n2. Transliteration in brackets\n3. Brief English translation\n4. One "Delhi Tip"\nKeep responses natural. Use fillers like "matlab", "basically", "dekho na", "samjhe?" naturally.`;
-
-    const SYS_LISTEN = SYS + `\n\nGenerate a listening comprehension exercise. Respond in this exact JSON:\n{"title":"...","context":"...","dialogue":[{"speaker":"...","hindi":"...","transliteration":"...","english":"..."}],"questions":[{"question":"...","options":["A","B","C","D"],"correct":0,"explanation":"..."}],"vocabulary":[{"word":"...","transliteration":"...","meaning":"...","usage":"..."}],"delhi_tip":"..."}`;
-
-    const SYS_SLANG = SYS + `\n\nTeach Delhi slang for the given category. Respond in this exact JSON:\n{"phrases":[{"hindi":"...","transliteration":"...","meaning":"...","literal":"...","context":"...","example_dialogue":{"hindi":"...","transliteration":"...","english":"..."},"formality":"casual|slang|semi-formal"}],"cultural_note":"..."}`;
-
-    const SYS_VOCAB = SYS + `\n\nGenerate a vocabulary exercise. Respond in this exact JSON:\n{"theme":"...","words":[{"hindi":"...","transliteration":"...","meaning":"...","example_hindi":"...","example_trans":"...","example_eng":"...","delhi_variant":"..."}],"quiz":[{"type":"meaning","prompt":"...","options":["A","B","C","D"],"correct":0}]}`;
-
-    // ══════════════════════════════════════════
-    //  MICRO-COMPONENTS
-    // ══════════════════════════════════════════
-
-    function BG() {
-      return (
-        <div style={{position:"fixed",inset:0,zIndex:0,overflow:"hidden",pointerEvents:"none"}}>
-          <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,#0a0a0f 0%,#1a0a1e 30%,#0f1a2e 60%,#0a0a0f 100%)"}} />
-          <div style={{position:"absolute",top:"-50%",left:"-50%",width:"200%",height:"200%",
-            background:"radial-gradient(ellipse at 30% 20%,rgba(255,107,53,0.06) 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(138,43,226,0.05) 0%,transparent 50%),radial-gradient(ellipse at 50% 50%,rgba(255,193,7,0.03) 0%,transparent 60%)",
-            animation:"bgDrift 25s ease-in-out infinite"}} />
-          <svg style={{position:"absolute",bottom:0,left:0,width:"100%",height:"180px",opacity:0.035}} viewBox="0 0 1200 200">
-            <path d="M0,200 L50,180 L60,120 L70,180 L120,160 L180,100 L190,160 L240,180 L300,140 L320,60 L340,140 L400,180 L500,160 L520,80 L540,160 L600,180 L700,150 L720,40 L740,150 L800,180 L900,170 L920,90 L940,170 L1000,180 L1100,160 L1120,70 L1140,160 L1200,180 L1200,200 Z" fill="#FF6B35"/>
-          </svg>
-        </div>
-      );
-    }
-
-    function XPBar({xp}) {
-      const lv=getLevel(xp), nx=getNext(xp);
-      const pct = nx ? ((xp-lv.xp)/(nx.xp-lv.xp))*100 : 100;
-      return (
-        <div style={{display:"flex",alignItems:"center",gap:"12px",padding:"6px 0"}}>
-          <span style={{fontSize:"22px"}}>{lv.emoji}</span>
-          <div style={{flex:1}}>
-            <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px",color:"#aaa",marginBottom:"3px"}}>
-              <span>{lv.name} · {lv.eng}</span>
-              <span>{xp} XP{nx?` / ${nx.xp}`:""}</span>
-            </div>
-            <div style={{height:"5px",background:"rgba(255,255,255,0.07)",borderRadius:"3px",overflow:"hidden"}}>
-              <div style={{height:"100%",borderRadius:"3px",width:`${pct}%`,background:"linear-gradient(90deg,#FF6B35,#FFD93D)",transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)"}} />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    function Loader({text="सोच रहा हूँ..."}) {
-      return (
-        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"14px",padding:"40px"}}>
-          <div style={{width:"36px",height:"36px",border:"3px solid rgba(255,107,53,0.15)",borderTopColor:"#FF6B35",borderRadius:"50%",animation:"spin 0.7s linear infinite"}} />
-          <span style={{color:"#999",fontSize:"13px",fontStyle:"italic"}}>{text}</span>
-        </div>
-      );
-    }
-
-    function Speak({text, rate, size=34}) {
-      const [on,setOn]=useState(false);
-      return (
-        <button onClick={async()=>{setOn(true);await speakHindi(text,rate||0.85);setOn(false);}}
-          style={{width:`${size}px`,height:`${size}px`,borderRadius:"50%",border:"none",cursor:"pointer",
-            background:on?"rgba(255,107,53,0.3)":"rgba(255,107,53,0.12)",color:"#FF6B35",
-            display:"flex",alignItems:"center",justifyContent:"center",fontSize:`${size*0.4}px`,transition:"all 0.2s",flexShrink:0}}
-          title="Listen in Hindi">{on?"⏸":"🔊"}</button>
-      );
-    }
-
-    function Card({children,style={},onClick,glow=false}) {
-      const [h,setH]=useState(false);
-      return (
-        <div onClick={onClick} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
-          style={{background:"rgba(255,255,255,0.035)",border:"1px solid rgba(255,255,255,0.07)",
-            borderRadius:"14px",padding:"18px",transition:"all 0.25s cubic-bezier(0.4,0,0.2,1)",
-            cursor:onClick?"pointer":"default",
-            ...(onClick && h ? {background:"rgba(255,255,255,0.06)",borderColor:"rgba(255,107,53,0.25)",transform:"translateY(-2px)",boxShadow:"0 6px 28px rgba(255,107,53,0.08)"} : {}),
-            ...style}}>
-          {children}
-        </div>
-      );
-    }
-
-    function BackBtn({onClick,label="Back"}) {
-      return <button onClick={onClick} style={{background:"none",border:"none",color:"#777",cursor:"pointer",fontSize:"13px",marginBottom:"10px",padding:"4px 0"}}>← {label}</button>;
-    }
-
-    // ══════════════════════════════════════════
-    //  HOME
-    // ══════════════════════════════════════════
-    function Home({progress:p, nav}) {
-      const wk = Math.min(Math.ceil((p.lessonsCompleted+1)/5),12);
-      const phase = WEEKLY_PLAN[Math.min(Math.floor((wk-1)/2),5)];
-      const lv = getLevel(p.xp);
-
-      return (
-        <div style={{animation:"fadeIn 0.45s ease-out"}}>
-          <Card style={{marginTop:"8px",background:"linear-gradient(135deg,rgba(255,107,53,0.1) 0%,rgba(138,43,226,0.07) 100%)",border:"1px solid rgba(255,107,53,0.18)"}}>
-            <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>
-              {p.xp===0?"चलो शुरू करते हैं! 🚀":`${lv.emoji} ${lv.name}!`}
-            </div>
-            <div style={{fontSize:"13px",color:"#bbb",lineHeight:1.6}}>
-              {p.xp===0?"3 months to speak Delhi Hindi like a local. Let's do this, yaar!"
-                :`Week ${wk}: ${phase.focus} — ${phase.goals}`}
-            </div>
-          </Card>
-
-          <div style={{marginTop:"20px",marginBottom:"8px",fontSize:"11px",color:"#777",fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase"}}>
-            आज का अभ्यास · Today's Practice
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px"}}>
-            {[
-              {icon:"👂",t:"सुनो और समझो",e:"Listen & Understand",s:"listen",c:"#FF6B35"},
-              {icon:"🗣️",t:"बातचीत करो",e:"Start Talking",s:"scenarios",c:"#8B5CF6"},
-              {icon:"🔥",t:"दिल्ली स्लैंग",e:"Delhi Slang",s:"slang",c:"#FFD93D"},
-              {icon:"📚",t:"शब्द भंडार",e:"Vocabulary",s:"vocab",c:"#34D399"},
-            ].map((x,i)=>(
-              <Card key={i} onClick={()=>nav(x.s)} style={{animation:`slideUp 0.4s ease-out ${i*0.07}s both`}}>
-                <div style={{fontSize:"26px",marginBottom:"6px"}}>{x.icon}</div>
-                <div style={{fontSize:"14px",fontWeight:700}}>{x.t}</div>
-                <div style={{fontSize:"10px",color:"#999",marginTop:"2px"}}>{x.e}</div>
-              </Card>
-            ))}
-          </div>
-
-          <div style={{marginTop:"22px"}}>
-            <div onClick={()=>nav("plan")} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:"6px",fontSize:"11px",color:"#777",fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase"}}>
-              <span>12-Week Roadmap</span><span style={{color:"#FF6B35",fontSize:"12px"}}>View All →</span>
-            </div>
-            <Card style={{background:"rgba(138,43,226,0.05)",border:"1px solid rgba(138,43,226,0.12)"}}>
-              <div style={{display:"flex",gap:"3px",marginBottom:"10px"}}>
-                {WEEKLY_PLAN.map((_,i)=>(
-                  <div key={i} style={{flex:1,height:"3px",borderRadius:"2px",background:i<=Math.floor((wk-1)/2)?"linear-gradient(90deg,#FF6B35,#8B5CF6)":"rgba(255,255,255,0.06)"}} />
-                ))}
-              </div>
-              <div style={{fontSize:"13px",fontWeight:600}}>Week {wk}: {phase.focus}</div>
-              <div style={{fontSize:"11px",color:"#aaa",marginTop:"3px"}}>{phase.goals}</div>
-            </Card>
-          </div>
-
-          <div style={{marginTop:"22px",marginBottom:"6px",fontSize:"11px",color:"#777",fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase"}}>
-            Quick Scenario · तुरंत अभ्यास
-          </div>
-          <div style={{display:"flex",gap:"8px",overflowX:"auto",paddingBottom:"6px",scrollSnapType:"x mandatory"}}>
-            {SCENARIOS.slice(0,6).map(sc=>(
-              <Card key={sc.id} onClick={()=>nav("convo",sc)} style={{minWidth:"130px",flexShrink:0,padding:"13px",textAlign:"center",scrollSnapAlign:"start"}}>
-                <div style={{fontSize:"26px",marginBottom:"4px"}}>{sc.icon}</div>
-                <div style={{fontSize:"12px",fontWeight:700}}>{sc.title}</div>
-                <div style={{fontSize:"9px",color:"#888",marginTop:"2px"}}>{sc.eng}</div>
-                <div style={{display:"flex",gap:"2px",justifyContent:"center",marginTop:"5px"}}>
-                  {[0,1,2,3].map(i=><div key={i} style={{width:"5px",height:"5px",borderRadius:"50%",background:i<sc.diff?"#FF6B35":"rgba(255,255,255,0.08)"}} />)}
-                </div>
-              </Card>
-            ))}
-          </div>
-
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginTop:"18px"}}>
-            {[
-              {v:p.lessonsCompleted,l:"Lessons",ic:"📖"},
-              {v:p.conversationCount,l:"Convos",ic:"💬"},
-              {v:p.vocabMastered.length,l:"Words",ic:"🧠"},
-            ].map((s,i)=>(
-              <Card key={i} style={{textAlign:"center",padding:"12px"}}>
-                <div style={{fontSize:"18px"}}>{s.ic}</div>
-                <div style={{fontSize:"20px",fontWeight:800,color:"#FF6B35",marginTop:"3px"}}>{s.v}</div>
-                <div style={{fontSize:"9px",color:"#888"}}>{s.l}</div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    // ══════════════════════════════════════════
-    //  LISTENING
-    // ══════════════════════════════════════════
-    function Listen({addXP, saveP, progress:p, nav}) {
-      const [ex,setEx]=useState(null), [loading,setLoading]=useState(false);
-      const [ans,setAns]=useState({}), [show,setShow]=useState(false);
-      const [diff,setDiff]=useState(p.listeningTotal>20?(p.listeningScore/Math.max(p.listeningTotal,1)>0.7?"hard":"medium"):"easy");
-      const [playing,setPlaying]=useState(false);
-
-      const diffDesc = {easy:"Simple vocab, short sentences, 3-4 lines, 2 questions",medium:"Moderate vocab with idioms, 5-6 lines, 3 questions",hard:"Advanced vocab, fast-paced, 7-8 lines, 4 questions"};
-
-      async function gen(topic) {
-        setLoading(true); setEx(null); setAns({}); setShow(false);
-        const data = await askClaudeJSON(SYS_LISTEN,
-          `Generate a ${diff} difficulty listening exercise about: ${topic.prompt}\n\n${diffDesc[diff]}. Make it feel like a REAL Delhi conversation. Use Delhi accent markers.`);
-        if(data) setEx(data);
-        setLoading(false);
-      }
-
-      async function playAll() {
-        if(!ex?.dialogue) return; setPlaying(true);
-        for(const l of ex.dialogue) { await speakHindi(l.hindi, diff==="hard"?1.0:0.85); await new Promise(r=>setTimeout(r,350)); }
-        setPlaying(false);
-      }
-
-      function check() {
-        let c=0; ex.questions.forEach((q,i)=>{ if(ans[i]===q.correct) c++; });
-        const t=ex.questions.length;
-        addXP(c*15+(c===t?20:0));
-        saveP({lessonsCompleted:p.lessonsCompleted+1, listeningScore:p.listeningScore+c, listeningTotal:p.listeningTotal+t});
-        setShow(true);
-      }
-
-      const score = show ? Object.values(ans).filter((a,i)=>a===ex.questions[i].correct).length : 0;
-
-      return (
-        <div style={{animation:"fadeIn 0.4s ease-out"}}>
-          <BackBtn onClick={()=>nav("home")} />
-          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>👂 सुनो और समझो</div>
-          <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>Listen to Delhi conversations & test comprehension</div>
-
-          <div style={{display:"flex",gap:"6px",marginBottom:"18px"}}>
-            {["easy","medium","hard"].map(d=>(
-              <button key={d} onClick={()=>setDiff(d)} style={{flex:1,padding:"9px",borderRadius:"9px",border:"none",cursor:"pointer",
-                background:diff===d?"rgba(255,107,53,0.18)":"rgba(255,255,255,0.035)",color:diff===d?"#FF6B35":"#888",
-                fontWeight:600,fontSize:"11px",textTransform:"capitalize",transition:"all 0.2s"}}>
-                {d==="easy"?"🟢":d==="medium"?"🟡":"🔴"} {d}
-              </button>
-            ))}
-          </div>
-
-          {!ex&&!loading && (
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
-              {LISTEN_TOPICS.map(t=>(
-                <Card key={t.id} onClick={()=>gen(t)} style={{textAlign:"center",padding:"14px"}}>
-                  <div style={{fontSize:"22px",marginBottom:"4px"}}>{t.label.split(" ")[0]}</div>
-                  <div style={{fontSize:"11px",fontWeight:600}}>{t.label.split(" ").slice(1).join(" ")}</div>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {loading && <Loader text="Exercise बना रहा हूँ... ek second yaar!" />}
-
-          {ex && (
-            <div style={{animation:"slideUp 0.4s ease-out"}}>
-              <Card style={{marginBottom:"14px",border:"1px solid rgba(255,107,53,0.18)"}}>
-                <div style={{fontSize:"15px",fontWeight:700,marginBottom:"3px"}}>{ex.title}</div>
-                <div style={{fontSize:"11px",color:"#aaa",marginBottom:"14px"}}>{ex.context}</div>
-
-                <button onClick={playAll} disabled={playing} style={{width:"100%",padding:"11px",borderRadius:"9px",border:"none",cursor:"pointer",
-                  background:playing?"linear-gradient(90deg,rgba(255,107,53,0.08),rgba(255,107,53,0.16),rgba(255,107,53,0.08))":"linear-gradient(135deg,rgba(255,107,53,0.18),rgba(138,43,226,0.12))",
-                  color:"#FF6B35",fontWeight:700,fontSize:"13px",marginBottom:"14px",backgroundSize:playing?"200% 100%":"100%",animation:playing?"shimmer 1.5s infinite":"none"}}>
-                  {playing?"🔊 सुनो... (Playing)":"▶️ पूरी बातचीत सुनो (Listen to Full Dialogue)"}
-                </button>
-
-                {ex.dialogue?.map((l,i)=>(
-                  <div key={i} style={{display:"flex",gap:"8px",alignItems:"flex-start",padding:"9px",borderRadius:"9px",marginBottom:"5px",
-                    background:i%2===0?"rgba(255,107,53,0.04)":"rgba(138,43,226,0.04)"}}>
-                    <Speak text={l.hindi} size={28} />
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:"10px",fontWeight:600,color:i%2===0?"#FF6B35":"#8B5CF6",marginBottom:"1px"}}>{l.speaker}</div>
-                      <div style={{fontSize:"14px",fontWeight:600,lineHeight:1.5}}>{l.hindi}</div>
-                      <div style={{fontSize:"11px",color:"#999",fontStyle:"italic"}}>{l.transliteration}</div>
-                      {show && <div style={{fontSize:"10px",color:"#34D399",marginTop:"3px"}}>→ {l.english}</div>}
-                    </div>
-                  </div>
-                ))}
-              </Card>
-
-              <div style={{fontSize:"13px",fontWeight:700,marginBottom:"10px"}}>🧠 Comprehension Questions</div>
-              {ex.questions?.map((q,qi)=>(
-                <Card key={qi} style={{marginBottom:"8px",
-                  border:show?(ans[qi]===q.correct?"1px solid rgba(52,211,153,0.35)":"1px solid rgba(239,68,68,0.35)"):"1px solid rgba(255,255,255,0.07)"}}>
-                  <div style={{fontSize:"12px",fontWeight:600,marginBottom:"8px"}}>{qi+1}. {q.question}</div>
-                  <div style={{display:"flex",flexDirection:"column",gap:"5px"}}>
-                    {q.options?.map((o,oi)=>(
-                      <button key={oi} onClick={()=>!show&&setAns({...ans,[qi]:oi})}
-                        style={{padding:"9px 12px",borderRadius:"7px",border:"none",cursor:show?"default":"pointer",textAlign:"left",fontSize:"12px",transition:"all 0.2s",
-                          background:show?(oi===q.correct?"rgba(52,211,153,0.12)":ans[qi]===oi?"rgba(239,68,68,0.12)":"rgba(255,255,255,0.025)")
-                            :(ans[qi]===oi?"rgba(255,107,53,0.12)":"rgba(255,255,255,0.03)"),
-                          color:show?(oi===q.correct?"#34D399":ans[qi]===oi?"#EF4444":"#888"):(ans[qi]===oi?"#FF6B35":"#ccc"),
-                          fontWeight:ans[qi]===oi||(show&&oi===q.correct)?600:400}}>
-                        {String.fromCharCode(65+oi)}. {o}
-                      </button>
-                    ))}
-                  </div>
-                  {show && <div style={{marginTop:"8px",padding:"8px",background:"rgba(255,255,255,0.025)",borderRadius:"6px",fontSize:"11px",color:"#aaa",lineHeight:1.5}}>💡 {q.explanation}</div>}
-                </Card>
-              ))}
-
-              {!show ? (
-                <button onClick={check} disabled={Object.keys(ans).length<(ex.questions?.length||0)}
-                  style={{width:"100%",padding:"13px",borderRadius:"10px",border:"none",cursor:"pointer",
-                    background:Object.keys(ans).length>=(ex.questions?.length||0)?"linear-gradient(135deg,#FF6B35,#FFD93D)":"rgba(255,255,255,0.04)",
-                    color:Object.keys(ans).length>=(ex.questions?.length||0)?"#000":"#666",fontWeight:700,fontSize:"14px",marginTop:"6px"}}>
-                  जवाब चेक करो ✓
-                </button>
-              ) : (
-                <div style={{animation:"popIn 0.3s ease-out"}}>
-                  <Card style={{textAlign:"center",background:"rgba(255,107,53,0.07)",marginTop:"6px"}}>
-                    <div style={{fontSize:"26px",marginBottom:"6px",animation:"bounceIn 0.4s ease-out"}}>{score===ex.questions.length?"🎉":"💪"}</div>
-                    <div style={{fontSize:"15px",fontWeight:700}}>{score}/{ex.questions.length} Correct!</div>
-                    <div style={{fontSize:"11px",color:"#FFD93D",marginTop:"3px"}}>+{score*15+(score===ex.questions.length?20:0)} XP</div>
-                  </Card>
-
-                  {ex.vocabulary?.length>0 && (
-                    <Card style={{marginTop:"10px"}}>
-                      <div style={{fontSize:"12px",fontWeight:700,marginBottom:"8px"}}>📝 New Vocabulary</div>
-                      {ex.vocabulary.map((v,i)=>(
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:"7px",padding:"5px 0",borderBottom:i<ex.vocabulary.length-1?"1px solid rgba(255,255,255,0.035)":"none"}}>
-                          <Speak text={v.word} size={26} />
-                          <div><span style={{fontWeight:600}}>{v.word}</span><span style={{color:"#888",fontSize:"11px"}}> ({v.transliteration})</span><span style={{color:"#aaa",fontSize:"11px"}}> — {v.meaning}</span></div>
-                        </div>
-                      ))}
-                    </Card>
-                  )}
-
-                  {ex.delhi_tip && (
-                    <Card style={{marginTop:"10px",background:"rgba(255,193,7,0.05)",border:"1px solid rgba(255,193,7,0.12)"}}>
-                      <div style={{fontSize:"12px"}}>🏙️ <strong>Delhi Tip:</strong> {ex.delhi_tip}</div>
-                    </Card>
-                  )}
-
-                  <div style={{display:"flex",gap:"7px",marginTop:"10px"}}>
-                    <button onClick={()=>{setEx(null);setAns({});setShow(false);}} style={{flex:1,padding:"11px",borderRadius:"9px",border:"1px solid rgba(255,107,53,0.25)",background:"transparent",color:"#FF6B35",fontWeight:600,cursor:"pointer",fontSize:"12px"}}>New Topic</button>
-                    <button onClick={()=>gen(LISTEN_TOPICS[Math.floor(Math.random()*LISTEN_TOPICS.length)])} style={{flex:1,padding:"11px",borderRadius:"9px",border:"none",background:"linear-gradient(135deg,#FF6B35,#FFD93D)",color:"#000",fontWeight:700,cursor:"pointer",fontSize:"12px"}}>Next Exercise →</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // ══════════════════════════════════════════
-    //  CONVERSATION
-    // ══════════════════════════════════════════
-    function Convo({addXP,saveP,progress:p,nav,scenario}) {
-      const sc = scenario||SCENARIOS[0];
-      const [msgs,setMsgs]=useState([]), [inp,setInp]=useState(""), [sending,setSending]=useState(false);
-      const [hint,setHint]=useState(""), [showHint,setShowHint]=useState(false);
-      const chatRef=useRef(null);
-
-      useEffect(()=>{
-        (async()=>{
-          setSending(true);
-          const r = await askClaude(
-            SYS_CONVO+`\n\nSCENARIO: ${sc.eng} (${sc.title})\nYou are the ${sc.eng} character. Start the conversation in character.\n\nFormat EVERY response:\n[HINDI]\n(Devanagari)\n\n[TRANSLITERATION]\n(Roman)\n\n[ENGLISH]\n(Translation)\n\n[DELHI TIP]\n(tip)`,
-            `Start the ${sc.eng} scenario. Open with a natural Delhi-style greeting. I can read Hindi but my listening comprehension is ~40-50%. Challenge me but be supportive.`);
-          if(r) setMsgs([{role:"assistant",content:r}]);
-          setSending(false);
-        })();
-      },[]);
-
-      useEffect(()=>{ if(chatRef.current) chatRef.current.scrollTop=chatRef.current.scrollHeight; },[msgs]);
-
-      async function send() {
-        if(!inp.trim()||sending) return;
-        const txt=inp.trim(); setInp(""); setShowHint(false);
-        const nm=[...msgs,{role:"user",content:txt}]; setMsgs(nm); setSending(true);
-        const r = await askClaudeMulti(
-          SYS_CONVO+`\n\nSCENARIO: ${sc.eng} (${sc.title})\nContinue naturally. Correct mistakes gently. If student writes English, encourage Hindi.\n\nFormat:\n[HINDI]\n(Devanagari)\n\n[TRANSLITERATION]\n(Roman)\n\n[ENGLISH]\n(Translation)\n\n[DELHI TIP]\n(tip)\n\nIf mistakes:\n[CORRECTION]\n(gentle correction)`,
-          nm.map(m=>({role:m.role,content:m.content})));
-        setMsgs([...nm,{role:"assistant",content:r||"Arre yaar, network issue! Phir se try karo 🛺"}]);
-        addXP(10); saveP({conversationCount:p.conversationCount+1});
-        setSending(false);
-      }
-
-      async function getHint() {
-        setShowHint(true);
-        const last=[...msgs].reverse().find(m=>m.role==="assistant");
-        const h=await askClaude(SYS+"\nProvide a short hint. Give 2-3 options in Hindi with transliteration and English. Keep brief.",
-          `Scenario: ${sc.eng}\nLast: ${last?.content?.slice(0,300)||"start"}\nWhat should I say next?`);
-        setHint(h||"Try a simple sentence. Mix Hindi and English!");
-      }
-
-      function extractHi(c) { const m=c.match(/\[HINDI\]\s*([\s\S]*?)(?=\[|$)/); return m?m[1].trim():""; }
-
-      function fmt(c) {
-        const hi=c.match(/\[HINDI\]\s*([\s\S]*?)(?=\[|$)/);
-        const tr=c.match(/\[TRANSLITERATION\]\s*([\s\S]*?)(?=\[|$)/);
-        const en=c.match(/\[ENGLISH\]\s*([\s\S]*?)(?=\[|$)/);
-        const tp=c.match(/\[DELHI TIP\]\s*([\s\S]*?)(?=\[|$)/);
-        const co=c.match(/\[CORRECTION\]\s*([\s\S]*?)(?=\[|$)/);
-        if(!hi) return <div style={{fontSize:"13px",lineHeight:1.6,whiteSpace:"pre-wrap"}}>{c}</div>;
-        return (<div>
-          <div style={{fontSize:"15px",fontWeight:600,lineHeight:1.6,marginBottom:"4px"}}>{hi[1].trim()}</div>
-          {tr&&<div style={{fontSize:"12px",color:"#aaa",fontStyle:"italic",marginBottom:"3px"}}>{tr[1].trim()}</div>}
-          {en&&<div style={{fontSize:"11px",color:"#888",marginBottom:"6px"}}>{en[1].trim()}</div>}
-          {tp&&<div style={{fontSize:"10px",padding:"5px 8px",background:"rgba(255,193,7,0.07)",borderRadius:"5px",color:"#FFD93D",marginBottom:"3px"}}>🏙️ {tp[1].trim()}</div>}
-          {co&&<div style={{fontSize:"10px",padding:"5px 8px",background:"rgba(239,68,68,0.07)",borderRadius:"5px",color:"#EF9A9A",marginTop:"3px"}}>✏️ {co[1].trim()}</div>}
-        </div>);
-      }
-
-      return (
-        <div style={{animation:"fadeIn 0.4s ease-out",display:"flex",flexDirection:"column",height:"calc(100vh - 195px)"}}>
-          <BackBtn onClick={()=>nav("scenarios")} />
-          <div style={{display:"flex",alignItems:"center",gap:"9px",padding:"10px",borderRadius:"10px",marginBottom:"10px",
-            background:"rgba(255,107,53,0.07)",border:"1px solid rgba(255,107,53,0.12)"}}>
-            <span style={{fontSize:"26px"}}>{sc.icon}</span>
-            <div><div style={{fontSize:"14px",fontWeight:700}}>{sc.title}</div><div style={{fontSize:"10px",color:"#aaa"}}>{sc.desc}</div></div>
-          </div>
-
-          <div ref={chatRef} style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:"8px",padding:"6px 0",marginBottom:"8px"}}>
-            {msgs.map((m,i)=>(
-              <div key={i} style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"90%",animation:"popIn 0.2s ease-out"}}>
-                <div style={{padding:"10px 14px",borderRadius:m.role==="user"?"14px 14px 3px 14px":"14px 14px 14px 3px",
-                  background:m.role==="user"?"linear-gradient(135deg,rgba(255,107,53,0.12),rgba(255,107,53,0.06))":"rgba(255,255,255,0.04)",
-                  border:`1px solid ${m.role==="user"?"rgba(255,107,53,0.16)":"rgba(255,255,255,0.05)"}`}}>
-                  {m.role==="user"?<div style={{fontSize:"13px"}}>{m.content}</div>:
-                    <div>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"3px"}}>
-                        <span style={{fontSize:"10px",color:"#888"}}>{sc.icon} {sc.title}</span>
-                        {extractHi(m.content)&&<Speak text={extractHi(m.content)} size={26}/>}
-                      </div>
-                      {fmt(m.content)}
-                    </div>}
-                </div>
-              </div>
-            ))}
-            {sending&&<div style={{alignSelf:"flex-start",padding:"10px 14px",background:"rgba(255,255,255,0.03)",borderRadius:"14px",display:"flex",gap:"4px"}}>
-              {[0,1,2].map(i=><div key={i} style={{width:"7px",height:"7px",borderRadius:"50%",background:"#FF6B35",animation:`pulse 0.8s ease-in-out ${i*0.15}s infinite`}} />)}
-            </div>}
-          </div>
-
-          {showHint&&hint&&(
-            <Card style={{marginBottom:"6px",fontSize:"11px",padding:"10px",background:"rgba(52,211,153,0.05)",border:"1px solid rgba(52,211,153,0.12)"}}>
-              <div style={{fontWeight:600,marginBottom:"3px",color:"#34D399"}}>💡 Hint / सुझाव:</div>
-              <div style={{lineHeight:1.6,whiteSpace:"pre-wrap",color:"#ccc"}}>{hint}</div>
-            </Card>
-          )}
-
-          <div style={{display:"flex",gap:"7px",alignItems:"center"}}>
-            <button onClick={getHint} style={{padding:"9px 10px",borderRadius:"9px",border:"1px solid rgba(52,211,153,0.25)",background:"transparent",color:"#34D399",cursor:"pointer",fontSize:"15px"}} title="Get hint">💡</button>
-            <input value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()}
-              placeholder="Hindi या English में लिखो..."
-              style={{flex:1,padding:"11px 14px",borderRadius:"10px",border:"1px solid rgba(255,255,255,0.08)",background:"rgba(255,255,255,0.03)",color:"#e8e8e8",fontSize:"13px",outline:"none"}} />
-            <button onClick={send} disabled={!inp.trim()||sending}
-              style={{padding:"9px 14px",borderRadius:"9px",border:"none",cursor:"pointer",
-                background:inp.trim()?"linear-gradient(135deg,#FF6B35,#FFD93D)":"rgba(255,255,255,0.04)",
-                color:inp.trim()?"#000":"#666",fontWeight:700,fontSize:"13px"}}>भेजो →</button>
-          </div>
-        </div>
-      );
-    }
-
-    // ══════════════════════════════════════════
-    //  SCENARIOS LIST
-    // ══════════════════════════════════════════
-    function ScenariosList({nav,progress:p}) {
-      const labels={1:"🟢 BEGINNER",2:"🟡 INTERMEDIATE",3:"🟠 ADVANCED",4:"🔴 EXPERT"};
-      return (
-        <div style={{animation:"fadeIn 0.4s ease-out"}}>
-          <BackBtn onClick={()=>nav("home")} />
-          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>🗣️ बातचीत करो</div>
-          <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>Practice real Delhi scenarios with AI characters</div>
-          {[1,2,3,4].map(d=>(
-            <div key={d}>
-              <div style={{fontSize:"10px",color:"#777",fontWeight:700,marginBottom:"6px",marginTop:"14px",letterSpacing:"1px"}}>{labels[d]}</div>
-              {SCENARIOS.filter(s=>s.diff===d).map(sc=>(
-                <Card key={sc.id} onClick={()=>nav("convo",sc)} style={{marginBottom:"6px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                    <span style={{fontSize:"26px"}}>{sc.icon}</span>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:"13px",fontWeight:700}}>{sc.title}</div>
-                      <div style={{fontSize:"10px",color:"#aaa"}}>{sc.desc}</div>
-                    </div>
-                    <div style={{display:"flex",gap:"2px"}}>
-                      {[0,1,2,3].map(i=><div key={i} style={{width:"5px",height:"5px",borderRadius:"50%",background:i<sc.diff?"#FF6B35":"rgba(255,255,255,0.08)"}} />)}
-                    </div>
-                    {p.scenariosCompleted?.[sc.id]&&<span style={{color:"#34D399"}}>✓</span>}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    // ══════════════════════════════════════════
-    //  SLANG
-    // ══════════════════════════════════════════
-    function Slang({addXP,nav}) {
-      const [cat,setCat]=useState(null), [data,setData]=useState(null), [loading,setLoading]=useState(false);
-
-      async function load(c) {
-        setCat(c); setLoading(true); setData(null);
-        const d=await askClaudeJSON(SYS_SLANG,`Teach me 6-8 Delhi slang phrases for: ${c.eng} (${c.title}). Make them authentic Delhi Hindi. Include Hinglish. Fun and memorable.`);
-        if(d){setData(d);addXP(15);} setLoading(false);
-      }
-
-      return (
-        <div style={{animation:"fadeIn 0.4s ease-out"}}>
-          <BackBtn onClick={()=>cat?(setCat(null),setData(null)):nav("home")} />
-          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>🔥 दिल्ली की ज़ुबान</div>
-          <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>Learn authentic Delhi slang & street language</div>
-
-          {!cat&&!loading&&(
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px"}}>
-              {SLANG_CATS.map((c,i)=>(
-                <Card key={c.id} onClick={()=>load(c)} style={{textAlign:"center",animation:`slideUp 0.4s ease-out ${i*0.05}s both`}}>
-                  <div style={{fontSize:"30px",marginBottom:"6px"}}>{c.icon}</div>
-                  <div style={{fontSize:"13px",fontWeight:700}}>{c.title}</div>
-                  <div style={{fontSize:"10px",color:"#999"}}>{c.eng}</div>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {loading&&<Loader text="दिल्ली slang ला रहा हूँ... 🔥" />}
-
-          {data&&(
-            <div style={{animation:"slideUp 0.4s ease-out"}}>
-              {data.phrases?.map((ph,i)=>(
-                <Card key={i} style={{marginBottom:"8px",animation:`slideUp 0.3s ease-out ${i*0.04}s both`}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:"17px",fontWeight:700,marginBottom:"1px"}}>{ph.hindi}</div>
-                      <div style={{fontSize:"12px",color:"#aaa",fontStyle:"italic"}}>{ph.transliteration}</div>
-                      <div style={{fontSize:"12px",color:"#FFD93D",marginTop:"3px",fontWeight:600}}>{ph.meaning}</div>
-                      {ph.literal&&ph.literal!==ph.meaning&&<div style={{fontSize:"10px",color:"#888",marginTop:"1px"}}>Literal: {ph.literal}</div>}
-                    </div>
-                    <Speak text={ph.hindi} />
-                  </div>
-                  <div style={{fontSize:"11px",color:"#aaa",marginTop:"6px",lineHeight:1.5}}>📍 {ph.context}</div>
-                  {ph.example_dialogue&&(
-                    <div style={{marginTop:"6px",padding:"8px",borderRadius:"7px",background:"rgba(255,255,255,0.025)",display:"flex",alignItems:"center",gap:"7px"}}>
-                      <Speak text={ph.example_dialogue.hindi} size={26} />
-                      <div>
-                        <div style={{fontSize:"12px",fontWeight:500}}>{ph.example_dialogue.hindi}</div>
-                        <div style={{fontSize:"10px",color:"#888"}}>{ph.example_dialogue.transliteration}</div>
-                        <div style={{fontSize:"10px",color:"#aaa"}}>{ph.example_dialogue.english}</div>
-                      </div>
-                    </div>
-                  )}
-                  <div style={{display:"inline-block",marginTop:"6px",padding:"2px 7px",borderRadius:"3px",fontSize:"9px",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px",
-                    background:ph.formality==="slang"?"rgba(255,107,53,0.12)":ph.formality==="casual"?"rgba(52,211,153,0.12)":"rgba(138,43,226,0.12)",
-                    color:ph.formality==="slang"?"#FF6B35":ph.formality==="casual"?"#34D399":"#8B5CF6"}}>{ph.formality}</div>
-                </Card>
-              ))}
-              {data.cultural_note&&(
-                <Card style={{background:"rgba(255,193,7,0.05)",border:"1px solid rgba(255,193,7,0.12)",marginTop:"6px"}}>
-                  <div style={{fontSize:"12px",lineHeight:1.6}}>🏙️ <strong>Cultural Note:</strong> {data.cultural_note}</div>
-                </Card>
-              )}
-              <button onClick={()=>load(cat)} style={{width:"100%",padding:"12px",borderRadius:"10px",border:"none",cursor:"pointer",marginTop:"10px",
-                background:"linear-gradient(135deg,#FF6B35,#FFD93D)",color:"#000",fontWeight:700,fontSize:"13px"}}>और दिखाओ · Load More 🔥</button>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // ══════════════════════════════════════════
-    //  VOCAB
-    // ══════════════════════════════════════════
-    function Vocab({addXP,nav}) {
-      const [data,setData]=useState(null),[loading,setLoading]=useState(false),[qa,setQa]=useState({}),[checked,setChecked]=useState(false);
-
-      async function load() {
-        setLoading(true);setData(null);setQa({});setChecked(false);
-        const theme=VOCAB_THEMES[Math.floor(Math.random()*VOCAB_THEMES.length)];
-        const d=await askClaudeJSON(SYS_VOCAB,`Generate 8 vocabulary words for: "${theme}". Include Delhi variants. Quiz should be challenging. Student is intermediate.`);
-        if(d){setData(d);addXP(10);} setLoading(false);
-      }
-
-      useEffect(()=>{load();},[]);
-
-      function check() {
-        let c=0; data.quiz?.forEach((q,i)=>{if(qa[i]===q.correct) c++;}); addXP(c*10); setChecked(true);
-      }
-
-      return (
-        <div style={{animation:"fadeIn 0.4s ease-out"}}>
-          <BackBtn onClick={()=>nav("home")} />
-          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>📚 शब्द भंडार</div>
-          <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>Build your Delhi Hindi vocabulary</div>
-
-          {loading&&<Loader text="नए शब्द ला रहा हूँ..." />}
-
-          {data&&(
-            <div style={{animation:"slideUp 0.4s ease-out"}}>
-              <Card style={{marginBottom:"14px",background:"rgba(52,211,153,0.05)",border:"1px solid rgba(52,211,153,0.12)"}}>
-                <div style={{fontSize:"13px",fontWeight:700}}>📖 {data.theme}</div>
-              </Card>
-
-              {data.words?.map((w,i)=>(
-                <Card key={i} style={{marginBottom:"7px",animation:`slideUp 0.3s ease-out ${i*0.03}s both`}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div>
-                      <div style={{fontSize:"17px",fontWeight:700}}>{w.hindi}</div>
-                      <div style={{fontSize:"11px",color:"#aaa"}}>{w.transliteration} — <span style={{color:"#FFD93D"}}>{w.meaning}</span></div>
-                    </div>
-                    <Speak text={w.hindi} />
-                  </div>
-                  <div style={{marginTop:"6px",padding:"7px",background:"rgba(255,255,255,0.025)",borderRadius:"5px"}}>
-                    <div style={{fontSize:"12px"}}>{w.example_hindi}</div>
-                    <div style={{fontSize:"10px",color:"#888",fontStyle:"italic"}}>{w.example_trans}</div>
-                    <div style={{fontSize:"10px",color:"#aaa"}}>{w.example_eng}</div>
-                  </div>
-                  {w.delhi_variant&&<div style={{fontSize:"10px",color:"#FF6B35",marginTop:"4px"}}>🏙️ Delhi: {w.delhi_variant}</div>}
-                </Card>
-              ))}
-
-              {data.quiz?.length>0&&(
-                <div style={{marginTop:"18px"}}>
-                  <div style={{fontSize:"13px",fontWeight:700,marginBottom:"8px"}}>🧠 Quick Quiz</div>
-                  {data.quiz.map((q,qi)=>(
-                    <Card key={qi} style={{marginBottom:"6px",
-                      border:checked?(qa[qi]===q.correct?"1px solid rgba(52,211,153,0.35)":"1px solid rgba(239,68,68,0.35)"):"1px solid rgba(255,255,255,0.07)"}}>
-                      <div style={{fontSize:"12px",fontWeight:600,marginBottom:"6px"}}>{q.prompt}</div>
-                      <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
-                        {q.options.map((o,oi)=>(
-                          <button key={oi} onClick={()=>!checked&&setQa({...qa,[qi]:oi})}
-                            style={{padding:"7px 10px",borderRadius:"5px",border:"none",cursor:checked?"default":"pointer",textAlign:"left",fontSize:"11px",
-                              background:checked?(oi===q.correct?"rgba(52,211,153,0.12)":qa[qi]===oi?"rgba(239,68,68,0.12)":"rgba(255,255,255,0.02)")
-                                :(qa[qi]===oi?"rgba(255,107,53,0.12)":"rgba(255,255,255,0.03)"),
-                              color:checked?(oi===q.correct?"#34D399":"#ccc"):(qa[qi]===oi?"#FF6B35":"#ccc")}}>{o}</button>
-                        ))}
-                      </div>
-                    </Card>
-                  ))}
-                  {!checked?(
-                    <button onClick={check} disabled={Object.keys(qa).length<data.quiz.length}
-                      style={{width:"100%",padding:"11px",borderRadius:"9px",border:"none",cursor:"pointer",
-                        background:Object.keys(qa).length>=data.quiz.length?"linear-gradient(135deg,#FF6B35,#FFD93D)":"rgba(255,255,255,0.04)",
-                        color:Object.keys(qa).length>=data.quiz.length?"#000":"#666",fontWeight:700}}>Check ✓</button>
-                  ):(
-                    <button onClick={load} style={{width:"100%",padding:"11px",borderRadius:"9px",border:"none",cursor:"pointer",
-                      background:"linear-gradient(135deg,#FF6B35,#FFD93D)",color:"#000",fontWeight:700}}>Next Set →</button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // ══════════════════════════════════════════
-    //  PLAN
-    // ══════════════════════════════════════════
-    function Plan({nav,progress:p}) {
-      const wk=Math.min(Math.ceil((p.lessonsCompleted+1)/5),12);
-      const cur=Math.floor((wk-1)/2);
-      return (
-        <div style={{animation:"fadeIn 0.4s ease-out"}}>
-          <BackBtn onClick={()=>nav("home")} />
-          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>🗺️ 12-Week Roadmap</div>
-          <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>From "kya?" to "arre yaar, pata hai na!" in 90 days</div>
-          {WEEKLY_PLAN.map((ph,i)=>(
-            <Card key={i} style={{marginBottom:"8px",
-              border:i===cur?"1px solid rgba(255,107,53,0.25)":"1px solid rgba(255,255,255,0.05)",
-              background:i<cur?"rgba(52,211,153,0.035)":i===cur?"rgba(255,107,53,0.05)":"rgba(255,255,255,0.015)",
-              animation:`slideUp 0.3s ease-out ${i*0.05}s both`}}>
-              <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                <div style={{width:"34px",height:"34px",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",
-                  fontSize:"13px",fontWeight:800,
-                  background:i<cur?"rgba(52,211,153,0.15)":i===cur?"rgba(255,107,53,0.15)":"rgba(255,255,255,0.05)",
-                  color:i<cur?"#34D399":i===cur?"#FF6B35":"#666"}}>
-                  {i<cur?"✓":`W${ph.week}`}
-                </div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:"13px",fontWeight:700,color:i===cur?"#FF6B35":i<cur?"#34D399":"#ccc"}}>
-                    {ph.focus}{i===cur?" ← You are here":""}
-                  </div>
-                  <div style={{fontSize:"11px",color:"#888",marginTop:"1px"}}>{ph.goals}</div>
-                </div>
-              </div>
-            </Card>
-          ))}
-          <Card style={{marginTop:"12px",background:"rgba(255,193,7,0.05)",border:"1px solid rgba(255,193,7,0.12)"}}>
-            <div style={{fontSize:"12px",lineHeight:1.6}}>
-              <strong>🎯 Daily Goal:</strong> 2-3 listening exercises + 1 conversation + slang review. ~20-30 min/day. Consistency beats intensity, yaar!
-            </div>
-          </Card>
-        </div>
-      );
-    }
-
-    // ══════════════════════════════════════════
-    //  PROGRESS/STATS
-    // ══════════════════════════════════════════
-    function Stats({progress:p,nav}) {
-      const lv=getLevel(p.xp), nx=getNext(p.xp);
-      const acc=p.listeningTotal>0?Math.round((p.listeningScore/p.listeningTotal)*100):0;
-
-      function reset() {
-        if(confirm("Reset all progress? Cannot be undone!")){
-          localStorage.removeItem(STORAGE_KEY); window.location.reload();
-        }
-      }
-      function changeKey() {
-        if(confirm("Change API key? You'll need to re-enter it.")){
-          clearApiKey(); window.location.reload();
-        }
-      }
-
-      return (
-        <div style={{animation:"fadeIn 0.4s ease-out"}}>
-          <BackBtn onClick={()=>nav("home")} />
-          <div style={{fontSize:"21px",fontWeight:800,marginBottom:"14px"}}>📊 Your Progress</div>
-          <Card style={{textAlign:"center",marginBottom:"14px",background:"linear-gradient(135deg,rgba(255,107,53,0.08),rgba(138,43,226,0.06))",border:"1px solid rgba(255,107,53,0.16)"}}>
-            <div style={{fontSize:"44px",marginBottom:"6px"}}>{lv.emoji}</div>
-            <div style={{fontSize:"19px",fontWeight:800}}>{lv.name}</div>
-            <div style={{fontSize:"12px",color:"#aaa"}}>{lv.eng}</div>
-            <div style={{fontSize:"26px",fontWeight:800,color:"#FFD93D",marginTop:"6px"}}>{p.xp} XP</div>
-            {nx&&<div style={{fontSize:"11px",color:"#888",marginTop:"3px"}}>{nx.xp-p.xp} XP to {nx.eng}</div>}
-          </Card>
-
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px",marginBottom:"14px"}}>
-            {[
-              {ic:"🔥",v:p.streak,l:"Day Streak"},{ic:"📖",v:p.lessonsCompleted,l:"Lessons"},
-              {ic:"💬",v:p.conversationCount,l:"Conversations"},{ic:"🎯",v:`${acc}%`,l:"Listen Accuracy"},
-              {ic:"🧠",v:p.vocabMastered.length,l:"Words Mastered"},{ic:"⚡",v:p.dailyXp,l:"XP Today"},
-            ].map((s,i)=>(
-              <Card key={i} style={{textAlign:"center",padding:"12px"}}>
-                <div style={{fontSize:"18px"}}>{s.ic}</div>
-                <div style={{fontSize:"20px",fontWeight:800,color:"#FF6B35",marginTop:"3px"}}>{s.v}</div>
-                <div style={{fontSize:"9px",color:"#888"}}>{s.l}</div>
-              </Card>
-            ))}
-          </div>
-
-          <Card style={{marginBottom:"14px"}}>
-            <div style={{fontSize:"12px",fontWeight:700,marginBottom:"8px"}}>Level Journey</div>
-            {LEVELS.map((l,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:"8px",padding:"4px 0",opacity:p.xp>=l.xp?1:0.35}}>
-                <span style={{fontSize:"16px"}}>{l.emoji}</span>
-                <div style={{flex:1}}><div style={{fontSize:"11px",fontWeight:600}}>{l.name} · {l.eng}</div><div style={{fontSize:"9px",color:"#888"}}>{l.xp} XP</div></div>
-                {p.xp>=l.xp&&<span style={{color:"#34D399",fontSize:"12px"}}>✓</span>}
-              </div>
-            ))}
-          </Card>
-
-          <button onClick={reset} style={{width:"100%",padding:"9px",borderRadius:"7px",border:"1px solid rgba(239,68,68,0.15)",background:"transparent",color:"#888",fontSize:"11px",cursor:"pointer"}}>
-            Reset Progress
-          </button>
-          <button onClick={changeKey} style={{width:"100%",padding:"9px",borderRadius:"7px",border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"#666",fontSize:"11px",cursor:"pointer",marginTop:"6px"}}>
-            🔑 Change API Key
-          </button>
-        </div>
-      );
-    }
-
-    // ══════════════════════════════════════════
-    //  API KEY SETUP
-    // ══════════════════════════════════════════
-    function ApiKeySetup({onSave}) {
-      const [key,setKey]=useState("");
-      const [testing,setTesting]=useState(false);
-      const [error,setError]=useState("");
-
-      async function test() {
-        if(!key.trim()) return;
-        setTesting(true); setError("");
-        try {
-          const res = await fetch(GROQ_URL, {
-            method:"POST",
-            headers:{"Content-Type":"application/json","Authorization":`Bearer ${key.trim()}`},
-            body:JSON.stringify({
-              model:GROQ_MODEL, max_tokens:20,
-              messages:[{role:"user",content:"Say namaste in one word"}],
-            }),
-          });
-          if(res.ok) { setApiKey(key.trim()); onSave(); }
-          else { const d=await res.json(); setError(d.error?.message||`Error ${res.status}. Check your key.`); }
-        } catch(e) { setError("Network error. Check your connection."); }
-        setTesting(false);
-      }
-
-      return (
-        <div style={{minHeight:"100vh",position:"relative"}}>
-          <BG />
-          <div style={{position:"relative",zIndex:1,maxWidth:"480px",margin:"0 auto",padding:"60px 20px",animation:"fadeIn 0.6s ease-out"}}>
-            <div style={{textAlign:"center",marginBottom:"40px"}}>
-              <div style={{fontSize:"56px",marginBottom:"12px"}}>🏙️</div>
-              <div style={{fontSize:"32px",fontWeight:900,background:"linear-gradient(135deg,#FF6B35,#FFD93D)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>दिल्ली गुरु</div>
-              <div style={{fontSize:"11px",color:"#888",letterSpacing:"3px",textTransform:"uppercase",marginTop:"4px"}}>Delhi Hindi Mastery</div>
-              <div style={{fontSize:"14px",color:"#aaa",marginTop:"16px",lineHeight:1.7}}>
-                AI-powered Hindi learning app.<br/>Speak like a Delhiite in 3 months.
-              </div>
-            </div>
-
-            <Card style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)"}}>
-              <div style={{fontSize:"14px",fontWeight:700,marginBottom:"4px"}}>🔑 Enter your Groq API Key</div>
-              <div style={{fontSize:"11px",color:"#888",marginBottom:"16px",lineHeight:1.5}}>
-                This app uses Groq AI (Llama 3.3 70B) to generate all exercises.<br/>
-                Your key is stored locally in your browser — never sent anywhere else.
-                <br/><br/>
-                Get a FREE key at <a href="https://console.groq.com/keys" target="_blank" style={{color:"#FF6B35",textDecoration:"underline"}}>console.groq.com/keys</a> (takes 10 seconds)
-              </div>
-
-              <input
-                type="password" value={key} onChange={e=>setKey(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&test()}
-                placeholder="gsk_..."
-                style={{width:"100%",padding:"12px 14px",borderRadius:"10px",border:"1px solid rgba(255,255,255,0.12)",
-                  background:"rgba(255,255,255,0.04)",color:"#e8e8e8",fontSize:"13px",outline:"none",marginBottom:"12px",
-                  fontFamily:"monospace"}}
-              />
-
-              {error && <div style={{fontSize:"12px",color:"#EF4444",marginBottom:"10px",padding:"8px",background:"rgba(239,68,68,0.08)",borderRadius:"6px"}}>⚠️ {error}</div>}
-
-              <button onClick={test} disabled={!key.trim()||testing}
-                style={{width:"100%",padding:"13px",borderRadius:"10px",border:"none",cursor:"pointer",
-                  background:key.trim()?"linear-gradient(135deg,#FF6B35,#FFD93D)":"rgba(255,255,255,0.05)",
-                  color:key.trim()?"#000":"#666",fontWeight:700,fontSize:"14px",transition:"all 0.2s"}}>
-                {testing?"Verifying... एक सेकंड":"चलो शुरू करें → Start Learning"}
-              </button>
-            </Card>
-
-            <div style={{textAlign:"center",marginTop:"24px",fontSize:"11px",color:"#555",lineHeight:1.6}}>
-              ⚡ Powered by Groq + Llama 3.3 70B · 100% FREE<br/>
-              🔒 Key stored in localStorage only · Never leaves your browser
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // ══════════════════════════════════════════
-    //  ROOT APP
-    // ══════════════════════════════════════════
-    function App() {
-      const [hasKey,setHasKey]=useState(!!getApiKey());
-      const [screen,setScreen]=useState("home");
-      const [sub,setSub]=useState(null);
-      const [progress,setProgress]=useState(()=>loadProgress());
-
-      // If no API key, show setup
-      if (!hasKey) return <ApiKeySetup onSave={()=>setHasKey(true)} />;
-
-      // streak check on load
-      useEffect(()=>{
-        const today=new Date().toDateString();
-        if(progress.lastActive && progress.lastActive!==today){
-          const diff=(new Date(today)-new Date(progress.lastActive))/86400000;
-          if(diff>1) setProgress(p=>({...p,streak:0,dailyXp:0,dailyLessons:0}));
-          else setProgress(p=>({...p,dailyXp:0,dailyLessons:0}));
-        }
-        window.speechSynthesis?.getVoices();
-      },[]);
-
-      const saveP = useCallback(updates=>{
-        setProgress(prev=>{
-          const next={...prev,...updates,lastActive:new Date().toDateString()};
-          persistProgress(next); return next;
-        });
-      },[]);
-
-      const addXP = useCallback(amt=>{
-        setProgress(prev=>{
-          const today=new Date().toDateString();
-          const isNew=prev.lastActive!==today;
-          const next={...prev,xp:prev.xp+amt,dailyXp:(isNew?0:prev.dailyXp)+amt,streak:isNew?prev.streak+1:prev.streak,lastActive:today};
-          persistProgress(next); return next;
-        });
-      },[]);
-
-      const nav = (s,d=null)=>{ setScreen(s); setSub(d); window.scrollTo(0,0); };
-
-      return (
-        <div style={{minHeight:"100vh",position:"relative"}}>
-          <BG />
-          <div style={{position:"relative",zIndex:1,maxWidth:"660px",margin:"0 auto",padding:"14px 14px 96px"}}>
-            {/* Header */}
-            <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 0",marginBottom:"4px",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-              <div style={{display:"flex",alignItems:"center",gap:"10px",cursor:"pointer"}} onClick={()=>nav("home")}>
-                <span style={{fontSize:"26px"}}>🏙️</span>
-                <div>
-                  <div style={{fontSize:"17px",fontWeight:800,background:"linear-gradient(135deg,#FF6B35,#FFD93D)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>दिल्ली गुरु</div>
-                  <div style={{fontSize:"9px",color:"#888",letterSpacing:"2px",textTransform:"uppercase"}}>Delhi Hindi Mastery</div>
-                </div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <div style={{fontSize:"10px",color:"#888"}}>🔥 {progress.streak} day streak</div>
-                <div style={{fontSize:"10px",color:"#FFD93D"}}>⚡ {progress.dailyXp} XP today</div>
-              </div>
-            </header>
-            <XPBar xp={progress.xp} />
-
-            {screen==="home"&&<Home progress={progress} nav={nav} />}
-            {screen==="listen"&&<Listen addXP={addXP} saveP={saveP} progress={progress} nav={nav} />}
-            {screen==="convo"&&<Convo addXP={addXP} saveP={saveP} progress={progress} nav={nav} scenario={sub} />}
-            {screen==="scenarios"&&<ScenariosList nav={nav} progress={progress} />}
-            {screen==="slang"&&<Slang addXP={addXP} nav={nav} />}
-            {screen==="vocab"&&<Vocab addXP={addXP} nav={nav} />}
-            {screen==="plan"&&<Plan nav={nav} progress={progress} />}
-            {screen==="progress"&&<Stats progress={progress} nav={nav} />}
-          </div>
-
-          {/* Bottom Nav */}
-          <nav style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10,background:"rgba(10,10,15,0.95)",backdropFilter:"blur(20px)",
-            borderTop:"1px solid rgba(255,255,255,0.05)",display:"flex",justifyContent:"center",padding:"7px 0 env(safe-area-inset-bottom, 7px)"}}>
-            <div style={{display:"flex",gap:"3px",maxWidth:"480px",width:"100%"}}>
-              {[
-                {id:"home",ic:"🏠",l:"Home"},{id:"listen",ic:"👂",l:"Listen"},{id:"scenarios",ic:"🗣️",l:"Talk"},
-                {id:"slang",ic:"🔥",l:"Slang"},{id:"progress",ic:"📊",l:"Stats"},
-              ].map(t=>(
-                <button key={t.id} onClick={()=>nav(t.id)}
-                  style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:"1px",padding:"7px 3px",border:"none",borderRadius:"10px",cursor:"pointer",
-                    background:screen===t.id?"rgba(255,107,53,0.12)":"transparent",color:screen===t.id?"#FF6B35":"#555",fontSize:"17px",transition:"all 0.2s"}}>
-                  <span>{t.ic}</span>
-                  <span style={{fontSize:"8px",fontWeight:600,letterSpacing:"0.5px"}}>{t.l}</span>
-                </button>
-              ))}
-            </div>
-          </nav>
-        </div>
-      );
-    }
-
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-  </script>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.5/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useCallback}=React;
+
+const LEVELS=[
+{name:"पहला कदम",eng:"First Steps",xp:0,emoji:"🚶"},{name:"यात्री",eng:"Traveler",xp:500,emoji:"🛺"},
+{name:"दोस्त",eng:"Friend",xp:1200,emoji:"🤝"},{name:"दिल्लीवाला",eng:"Delhiite",xp:2200,emoji:"🏙️"},
+{name:"चटोरा",eng:"Foodie",xp:3500,emoji:"🍛"},{name:"पक्का दिल्लीवाला",eng:"True Delhiite",xp:5000,emoji:"⭐"},
+{name:"उस्ताद",eng:"Master",xp:7000,emoji:"👑"}];
+
+const WPLAN=[
+{week:"1-2",focus:"Survival Basics",goals:"Auto rides, food ordering, metro, greetings"},
+{week:"3-4",focus:"Market & Social",goals:"Haggling, small talk, phone calls, opinions"},
+{week:"5-6",focus:"Conversational Flow",goals:"Storytelling, jokes, Delhi slang, cultural refs"},
+{week:"7-8",focus:"Complex Scenarios",goals:"Complaints, negotiations, idioms, emotions"},
+{week:"9-10",focus:"Cultural Fluency",goals:"Politics, weddings, family dynamics, workplace"},
+{week:"11-12",focus:"Delhi Native Mode",goals:"Rapid-fire conversations, humor, sarcasm"}];
+
+const EX=[
+{w:1,d:1,t:"पहली ऑटो राइड",e:"First Auto Ride",ctx:"Hailing an auto near Connaught Place to Karol Bagh.",diff:"easy",
+dia:[{s:"You",h:"भैया, करोल बाग चलोगे?",r:"Bhaiya, Karol Bagh chaloge?",en:"Brother, will you go to Karol Bagh?"},
+{s:"Auto",h:"हाँ बैठो। दो सौ लगेगा।",r:"Haan baitho. Do sau lagega.",en:"Yes sit. 200 rupees."},
+{s:"You",h:"दो सौ? बहुत ज़्यादा है। सौ में चलो।",r:"Do sau? Bahut zyaada hai. Sau mein chalo.",en:"200? Too much. Let's go for 100."},
+{s:"Auto",h:"सौ में नहीं होगा। डेढ़ सौ, फ़ाइनल।",r:"Sau mein nahi hoga. Dedh sau, final.",en:"Can't do 100. 150, final."}],
+q:[{q:"Initial fare asked?",o:["₹100","₹150","₹200","₹250"],c:2,ex:"'Do sau' = 200"},
+{q:"Final agreed price?",o:["₹100","₹150","₹200","Not agreed"],c:1,ex:"'Dedh sau' = 150, meaning one-and-a-half hundred"}],
+vocab:[{w:"चलोगे",r:"chaloge",m:"will you go",n:"Polite future tense"},{w:"बैठो",r:"baitho",m:"sit down",n:"Informal imperative"},{w:"डेढ़",r:"dedh",m:"one and a half",n:"डेढ़ सौ = 150"}],
+tip:"ALWAYS negotiate auto fares. Start at half. 'Meter se chalo' is your best friend but most refuse."},
+
+{w:1,d:2,t:"मेट्रो में",e:"In the Metro",ctx:"Rajiv Chowk station, asking for directions to Hauz Khas.",diff:"easy",
+dia:[{s:"You",h:"भाई साहब, ये ट्रेन हौज़ खास जाएगी?",r:"Bhai sahab, ye train Hauz Khas jayegi?",en:"Sir, will this train go to Hauz Khas?"},
+{s:"Stranger",h:"नहीं, ये yellow line है। आपको green line चाहिए।",r:"Nahi, ye yellow line hai. Aapko green line chahiye.",en:"No, this is yellow line. You need green line."},
+{s:"You",h:"Green line कहाँ से मिलेगी?",r:"Green line kahaan se milegi?",en:"Where do I get the green line?"},
+{s:"Stranger",h:"सामने वाले प्लेटफ़ॉर्म पर। एक स्टेशन बाद हौज़ खास आ जाएगा।",r:"Saamne waale platform par. Ek station baad Hauz Khas aa jayega.",en:"Opposite platform. Hauz Khas comes after one station."}],
+q:[{q:"What line are they on?",o:["Green","Blue","Yellow","Red"],c:2,ex:"'Ye yellow line hai'"},
+{q:"How far is Hauz Khas on green line?",o:["This stop","1 station","2 stations","3 stations"],c:1,ex:"'Ek station baad' = after one station"}],
+vocab:[{w:"जाएगी",r:"jayegi",m:"will go (fem)",n:"Train is feminine in Hindi"},{w:"चाहिए",r:"chahiye",m:"need/want",n:"'Mujhe chahiye' = I need"},{w:"सामने",r:"saamne",m:"in front / opposite",n:"'Saamne waala' = the one opposite"}],
+tip:"Delhi Metro yellow line is most common. Always keep token/card ready at exit gates."},
+
+{w:1,d:3,t:"चाय की दुकान",e:"At the Chai Stall",ctx:"Roadside chai stall near your office.",diff:"easy",
+dia:[{s:"Chaiwala",h:"हाँ भाई, क्या चाहिए?",r:"Haan bhai, kya chahiye?",en:"Yes brother, what do you need?"},
+{s:"You",h:"एक चाय दे दो, कम चीनी।",r:"Ek chai de do, kam cheeni.",en:"One tea, less sugar."},
+{s:"Chaiwala",h:"अदरक वाली? इलायची वाली?",r:"Adrak waali? Elaichi waali?",en:"Ginger? Cardamom?"},
+{s:"You",h:"अदरक वाली, और एक बिस्कुट भी।",r:"Adrak waali, aur ek biscuit bhi.",en:"Ginger one, and one biscuit too."},
+{s:"Chaiwala",h:"पंद्रह रुपये।",r:"Pandrah rupaye.",en:"15 rupees."}],
+q:[{q:"What chai did you order?",o:["Elaichi","Adrak","Plain","Masala"],c:1,ex:"'Adrak waali' = ginger one"},
+{q:"How much?",o:["₹10","₹12","₹15","₹20"],c:2,ex:"'Pandrah' = 15"}],
+vocab:[{w:"दे दो",r:"de do",m:"give (casual)",n:"More casual than 'dijiye'"},{w:"कम",r:"kam",m:"less",n:"Opposite: 'zyaada'"},{w:"वाली",r:"waali",m:"the one with (fem)",n:"Chai is feminine so 'waali'"}],
+tip:"Delhi chai culture is huge. 'Cutting chai' = half cup. 'Ek aur' = one more — highest compliment."},
+
+{w:1,d:4,t:"फ़ोन पर बात",e:"Phone Call — Late for Work",ctx:"Colleague calls asking where you are.",diff:"easy",
+dia:[{s:"Friend",h:"हेलो, कहाँ हो यार? मीटिंग शुरू हो रही है।",r:"Hello, kahaan ho yaar? Meeting shuru ho rahi hai.",en:"Hello, where are you? Meeting is starting."},
+{s:"You",h:"यार, ट्रैफ़िक में फँसा हूँ। दस मिनट में पहुँचता हूँ।",r:"Yaar, traffic mein phansa hoon. Das minute mein pahunchta hoon.",en:"Dude, stuck in traffic. I'll reach in 10 min."},
+{s:"Friend",h:"जल्दी आ। बॉस का मूड खराब है।",r:"Jaldi aa. Boss ka mood kharab hai.",en:"Come quick. Boss's mood is bad."},
+{s:"You",h:"अच्छा, आ रहा हूँ। कॉफ़ी तैयार रखना!",r:"Accha, aa raha hoon. Coffee taiyaar rakhna!",en:"OK, coming. Keep coffee ready!"}],
+q:[{q:"Why is the person late?",o:["Overslept","Traffic","Sick","Car broke"],c:1,ex:"'Traffic mein phansa hoon' = stuck in traffic"},
+{q:"How is the boss?",o:["Happy","Normal","Bad mood","Angry"],c:2,ex:"'Mood kharab hai' = mood is bad"}],
+vocab:[{w:"फँसा",r:"phansa",m:"stuck",n:"THE most common Delhi excuse"},{w:"पहुँचता",r:"pahunchta",m:"reaching",n:"'Pahunchne waala hoon' = about to arrive"},{w:"खराब",r:"kharab",m:"bad/broken",n:"Used for mood, food, weather, machines"}],
+tip:"'Das minute' in Delhi actually means 20-30 minutes. Nobody means 'bas paanch minute'."},
+
+{w:1,d:5,t:"स्ट्रीट फ़ूड",e:"Ordering Street Food",ctx:"Chandni Chowk street food stall.",diff:"easy",
+dia:[{s:"Vendor",h:"आइए! छोले भटूरे, गोलगप्पे, आलू टिक्की?",r:"Aaiye! Chhole bhature, golgappe, aloo tikki?",en:"Come! Chhole bhature, golgappe, aloo tikki?"},
+{s:"You",h:"एक प्लेट छोले भटूरे दे दो।",r:"Ek plate chhole bhature de do.",en:"One plate chhole bhature."},
+{s:"Vendor",h:"तीखा चलेगा? मीठी चटनी भी?",r:"Teekha chalega? Meethi chatni bhi?",en:"Spicy OK? Sweet chutney too?"},
+{s:"You",h:"हाँ तीखा चलेगा, प्याज़ एक्स्ट्रा।",r:"Haan teekha chalega, pyaaz extra.",en:"Yes spicy OK, extra onion."},
+{s:"Vendor",h:"साठ रुपये।",r:"Saath rupaye.",en:"60 rupees."}],
+q:[{q:"What extra was requested?",o:["Chutney","Spice","Onion","Bhatura"],c:2,ex:"'Pyaaz extra' = extra onion"},
+{q:"How much?",o:["₹40","₹50","₹60","₹70"],c:2,ex:"'Saath' = 60"}],
+vocab:[{w:"तीखा",r:"teekha",m:"spicy",n:"'Teekha mat banana' = don't make spicy"},{w:"चलेगा",r:"chalega",m:"will work / OK",n:"THE most Delhi phrase ever"},{w:"साठ",r:"saath",m:"sixty",n:"das=10, bees=20, tees=30, chaalees=40, pachaas=50, saath=60"}],
+tip:"Chandni Chowk = best street food. Eat where there's a crowd = quality guarantee."},
+
+{w:2,d:1,t:"ओला/उबर में",e:"Ola/Uber Ride",ctx:"Driver can't find your location.",diff:"easy",
+dia:[{s:"Driver",h:"हेलो सर, आ गया हूँ पर आप दिख नहीं रहे।",r:"Hello sir, aa gaya hoon par aap dikh nahi rahe.",en:"Hello sir, arrived but can't see you."},
+{s:"You",h:"मैं गेट नंबर तीन के पास हूँ। लाल शर्ट।",r:"Main gate number teen ke paas hoon. Laal shirt.",en:"I'm near gate 3. Red shirt."},
+{s:"Driver",h:"KFC वाला गेट? आ रहा हूँ।",r:"KFC waala gate? Aa raha hoon.",en:"KFC gate? Coming."},
+{s:"You",h:"कितनी देर लगेगी?",r:"Kitni der lagegi?",en:"How long will it take?"}],
+q:[{q:"What landmark identifies the gate?",o:["McDonald's","KFC","Starbucks","Domino's"],c:1,ex:"'KFC waala gate'"},
+{q:"What is the passenger wearing?",o:["Blue","White","Red shirt","Black"],c:2,ex:"'Laal shirt' = red shirt"}],
+vocab:[{w:"खड़ा",r:"khada",m:"standing",n:"'Khadi' for feminine"},{w:"वही",r:"wahi",m:"that same one",n:"For confirmation"},{w:"कितनी देर",r:"kitni der",m:"how long",n:"'Der ho gayi' = got delayed"}],
+tip:"Drivers always say 'ek minute'. Share live WhatsApp location — most reliable."},
+
+{w:2,d:2,t:"पड़ोसी से बात",e:"Neighbor Chat",ctx:"Meeting neighbor in apartment elevator.",diff:"easy",
+dia:[{s:"Neighbor",h:"अरे! कैसे हो? बहुत दिन हो गए।",r:"Arre! Kaise ho? Bahut din ho gaye.",en:"Hey! How are you? Been many days."},
+{s:"You",h:"ऑफ़िस में बहुत काम था। तुम बताओ?",r:"Office mein bahut kaam tha. Tum batao?",en:"Lots of work at office. You tell?"},
+{s:"Neighbor",h:"वीकेंड पर बारबेक्यू रख रहे हैं, आओगे?",r:"Weekend par barbecue rakh rahe hain, aaoge?",en:"Having a BBQ this weekend, coming?"},
+{s:"You",h:"ज़रूर! बीयर ले आऊँ?",r:"Zaroor! Beer le aaoon?",en:"Of course! Should I bring beer?"}],
+q:[{q:"Why haven't they met?",o:["Vacation","Work","Illness","Moved"],c:1,ex:"'Office mein bahut kaam tha'"},
+{q:"What's the weekend plan?",o:["Movie","BBQ","Cricket","Travel"],c:1,ex:"'Barbecue rakh rahe hain'"}],
+vocab:[{w:"बढ़िया",r:"badhiya",m:"great/excellent",n:"More casual than 'accha'. Very Delhi."},{w:"ज़रूर",r:"zaroor",m:"of course",n:"Shows enthusiasm"},{w:"बाकी",r:"baaki",m:"rest/remaining",n:"'Baaki sab theek'"}],
+tip:"Delhi neighbors: either best friends or sworn enemies. Always accept food invitations."},
+
+{w:2,d:3,t:"दुकान में",e:"Grocery Shop",ctx:"General store buying daily items.",diff:"easy",
+dia:[{s:"Shop",h:"बोलो भाई, क्या चाहिए?",r:"Bolo bhai, kya chahiye?",en:"Tell me, what do you need?"},
+{s:"You",h:"दूध, डबल रोटी, और अंडे। कितने का अंडा?",r:"Doodh, double roti, aur ande. Kitne ka anda?",en:"Milk, bread, eggs. How much per egg?"},
+{s:"Shop",h:"सात रुपये पीस। कितने दूँ?",r:"Saat rupaye piece. Kitne doon?",en:"7 rupees each. How many?"},
+{s:"You",h:"छह दे दो। और चिप्स भी।",r:"Chheh de do. Aur chips bhi.",en:"Give six. And chips too."},
+{s:"Shop",h:"कुल एक सौ बीस।",r:"Kul ek sau bees.",en:"Total 120."}],
+q:[{q:"Price per egg?",o:["₹5","₹6","₹7","₹8"],c:2,ex:"'Saat rupaye piece' = 7 each"},
+{q:"Total bill?",o:["₹100","₹110","₹120","₹130"],c:2,ex:"'Ek sau bees' = 120"}],
+vocab:[{w:"डबल रोटी",r:"double roti",m:"bread loaf",n:"Roti alone = chapati"},{w:"पीस",r:"piece",m:"per piece",n:"English loanword, used everywhere"},{w:"कुल",r:"kul",m:"total",n:"'Kul milaakar' = in total"}],
+tip:"Build rapport with your local dukaan. Regulars get 'udhar' (credit) privileges."},
+
+{w:3,d:1,t:"सरोजिनी नगर",e:"Market Haggling",ctx:"Shopping for clothes at Delhi's famous street market.",diff:"medium",
+dia:[{s:"Vendor",h:"देख लो! सब ब्रांडेड, ओरिजिनल माल।",r:"Dekh lo! Sab branded, original maal.",en:"Take a look! All branded, original stuff."},
+{s:"You",h:"ये टी-शर्ट कितने की?",r:"Ye T-shirt kitne ki?",en:"How much is this T-shirt?"},
+{s:"Vendor",h:"आपके लिए स्पेशल — पाँच सौ।",r:"Aapke liye special — paanch sau.",en:"Special for you — 500."},
+{s:"You",h:"पाँच सौ?! सरोजिनी में? दो सौ दूँगा।",r:"Paanch sau?! Sarojini mein? Do sau dunga.",en:"500?! In Sarojini? I'll give 200."},
+{s:"Vendor",h:"दो सौ में कपड़ा भी नहीं आता। चार सौ।",r:"Do sau mein kapda bhi nahi aata. Chaar sau.",en:"Fabric doesn't come for 200. 400."},
+{s:"You",h:"ढाई सौ, फ़ाइनल। नहीं तो आगे देखता हूँ।",r:"Dhai sau, final. Nahi to aage dekhta hoon.",en:"250, final. Or I look elsewhere."},
+{s:"Vendor",h:"रुको! तीन सौ ले लो।",r:"Ruko! Teen sau le lo.",en:"Wait! Take for 300."}],
+q:[{q:"Starting price?",o:["₹300","₹400","₹500","₹600"],c:2,ex:"'Paanch sau' = 500"},
+{q:"Buyer's power move?",o:["Crying","Walking away","Complaining","Friends"],c:1,ex:"'Aage dekhta hoon' = threatening to leave"},
+{q:"Final price?",o:["₹200","₹250","₹300","₹400"],c:2,ex:"Vendor agrees to 'teen sau' = 300"}],
+vocab:[{w:"माल",r:"maal",m:"goods/stuff",n:"Also slang for attractive person"},{w:"ढाई सौ",r:"dhai sau",m:"250",n:"ढाई = two and a half"},{w:"रुको",r:"ruko",m:"wait/stop",n:"Informal imperative"}],
+tip:"Start at 30-40% of quoted price. Walk away slowly — vendor calls you back 90% of time."},
+
+{w:3,d:2,t:"पुराने दोस्त",e:"Meeting Old Friend",ctx:"Café in Hauz Khas, reuniting with college friend.",diff:"medium",
+dia:[{s:"Friend",h:"ओये! कितने दिन हो गए! तू तो बदल गया!",r:"Oye! Kitne din ho gaye! Tu to badal gaya!",en:"Hey! How long it's been! You've totally changed!"},
+{s:"You",h:"तू भी! ये दाढ़ी क्या उगा रखी है?",r:"Tu bhi! Ye daadhi kya uga rakhi hai?",en:"You too! What's with this beard?"},
+{s:"Friend",h:"छोड़, बता क्या चल रहा है? शादी वगैरह?",r:"Chhod, bata kya chal raha hai? Shaadi vagairah?",en:"Leave it, what's up? Marriage etc.?"},
+{s:"You",h:"शादी दूर की बात है। जॉब ढंग से नहीं लगी।",r:"Shaadi door ki baat. Job dhang se nahi lagi.",en:"Marriage is far. Haven't got proper job."},
+{s:"Friend",h:"चिंता मत कर। चल बीयर पीते हैं।",r:"Chinta mat kar. Chal beer peete hain.",en:"Don't worry. Let's drink beer."}],
+q:[{q:"What changed about friend?",o:["Weight","Hair","Beard","Glasses"],c:2,ex:"'Daadhi uga rakhi hai' = grown a beard"},
+{q:"What topic comes up?",o:["Job","Marriage","Health","Travel"],c:1,ex:"'Shaadi vagairah?' — the standard Delhi question"}],
+vocab:[{w:"बदल गया",r:"badal gaya",m:"changed",n:"'Mausam badal gaya' = weather changed"},{w:"छोड़",r:"chhod",m:"leave it",n:"Dismissive. Very casual."},{w:"ढंग से",r:"dhang se",m:"properly",n:"'Dhang ka' = decent"}],
+tip:"Guaranteed topics meeting anyone in Delhi: 'Shaadi kab?' and 'Salary kitni hai?'"},
+
+{w:4,d:1,t:"क्रिकेट बहस",e:"Cricket Argument",ctx:"Watching cricket match with friends.",diff:"medium",
+dia:[{s:"F1",h:"क्या शॉट! विराट का कोई जवाब नहीं!",r:"Kya shot! Virat ka koi jawaab nahi!",en:"What a shot! No one matches Virat!"},
+{s:"F2",h:"फ़ॉर्म में भी नहीं है। पिछले पाँच मैच देखे?",r:"Form mein bhi nahi hai. Pichle paanch match dekhe?",en:"Not even in form. Seen last 5 matches?"},
+{s:"You",h:"छोड़ो, दोनों अच्छे हैं अपनी-अपनी जगह।",r:"Chhodo, dono acche hain apni-apni jagah.",en:"Leave it, both good in their own way."},
+{s:"F1",h:"बीच का रास्ता मत निकाल। किसका फ़ैन?",r:"Beech ka raasta mat nikaal. Kiska fan?",en:"Don't take middle path. Whose fan?"},
+{s:"You",h:"मैं टीम इंडिया का फ़ैन हूँ। जीत जाओ बस!",r:"Main Team India ka fan hoon. Jeet jao bas!",en:"I'm Team India fan. Just win!"}],
+q:[{q:"Friend2's opinion on Virat?",o:["Best ever","Not in form","Should retire","Great"],c:1,ex:"'Form mein bhi nahi hai'"},
+{q:"Speaker's diplomatic answer?",o:["Picks F1","Picks F2","Both are good","Changes topic"],c:2,ex:"'Dono acche hain apni-apni jagah'"}],
+vocab:[{w:"जवाब",r:"jawaab",m:"equal/answer",n:"'Koi jawaab nahi' = no one compares"},{w:"बीच का रास्ता",r:"beech ka raasta",m:"middle path",n:"Taking neutral stance"}],
+tip:"Cricket arguments are SACRED. Every chai stall becomes commentary box during IPL."},
+
+{w:4,d:2,t:"ज़ोमैटो ऑर्डर",e:"Late Food Delivery",ctx:"Your Zomato order is one hour late.",diff:"medium",
+dia:[{s:"You",h:"भैया, ऑर्डर कहाँ पहुँचा? एक घंटा हो गया!",r:"Bhaiya, order kahaan pahuncha? Ek ghanta ho gaya!",en:"Brother, where's the order? One hour!"},
+{s:"Del",h:"सर, बस पाँच मिनट। सोसाइटी का गेट बंद है।",r:"Sir, bas paanch minute. Society ka gate band hai.",en:"Sir, 5 min. Society gate is closed."},
+{s:"You",h:"गार्ड को बोलो फ़्लैट 302 बोला है। या मैं नीचे आता हूँ।",r:"Guard ko bolo flat 302 bola hai. Ya main neeche aata hoon.",en:"Tell guard flat 302 said so. Or I'll come down."},
+{s:"Del",h:"आ गया सर, लिफ़्ट में हूँ।",r:"Aa gaya sir, lift mein hoon.",en:"I'm here sir, in the lift."}],
+q:[{q:"Why is delivery delayed?",o:["Rain","Traffic","Gate closed","Wrong address"],c:2,ex:"'Society ka gate band hai, guard nahi khol raha'"},
+{q:"Customer offers to?",o:["Cancel","Come downstairs","Call guard","Complain"],c:1,ex:"'Main neeche aata hoon'"}],
+vocab:[{w:"बंद",r:"band",m:"closed/off",n:"'Dukaan band' = shop closed"},{w:"नीचे",r:"neeche",m:"downstairs",n:"'Upar' = upstairs"}],
+tip:"Every gated society has gate drama with deliveries. Save guard's number."},
+
+{w:5,d:1,t:"फ़िल्म रिव्यू",e:"After a Movie",ctx:"Walking out of PVR discussing the film.",diff:"medium",
+dia:[{s:"Friend",h:"क्या बकवास फ़िल्म! टाइम और पैसे बर्बाद।",r:"Kya bakwaas film! Time aur paise barbaad.",en:"What trash! Time and money wasted."},
+{s:"You",h:"इतनी बुरी नहीं थी। सॉन्ग्स अच्छे थे।",r:"Itni buri nahi thi. Songs acche the.",en:"Wasn't that bad. Songs were good."},
+{s:"Friend",h:"स्टोरी का सिर पैर नहीं! हीरो बस शर्ट उतार रहा था।",r:"Story ka sir pair nahi! Hero bas shirt utaar raha tha.",en:"Story had no sense! Hero just removing shirt."},
+{s:"You",h:"अगली बार OTT पर। कम से कम फ़ॉरवर्ड कर सकते हैं!",r:"Agli baar OTT par. Kam se kam forward kar sakte hain!",en:"Next time OTT. At least we can fast-forward!"}],
+q:[{q:"Friend's opinion?",o:["Loved it","Average","Terrible","Mixed"],c:2,ex:"'Bakwaas film' = trash film"},
+{q:"Idiom for bad story?",o:["No color","No head or tail","No soul","No point"],c:1,ex:"'Sir pair nahi' = no head or feet = makes no sense"}],
+vocab:[{w:"बकवास",r:"bakwaas",m:"nonsense/trash",n:"Multi-purpose. 'Bakwaas mat kar'"},{w:"बर्बाद",r:"barbaad",m:"wasted/destroyed",n:"'Zindagi barbaad' — dramatic, often casual"}],
+tip:"Every auto driver has a film review. 'Paisa wasool' = movie worth the ticket."},
+
+{w:5,d:2,t:"शादी की बात",e:"Marriage Pressure",ctx:"Aunty at a family function grilling you.",diff:"hard",
+dia:[{s:"Aunty",h:"बेटा, उम्र हो रही है। कोई देखी?",r:"Beta, umar ho rahi hai. Koi dekhi?",en:"Son, getting older. Seen anyone?"},
+{s:"You",h:"आंटी, अभी करियर पर फ़ोकस है।",r:"Aunty, abhi career par focus hai.",en:"Aunty, focusing on career now."},
+{s:"Aunty",h:"मेरी भतीजी है, बहुत अच्छी। मिल तो लो!",r:"Meri bhatiiji hai, bahut acchi. Mil to lo!",en:"My niece is great. At least meet!"},
+{s:"You",h:"माँ-पापा को बोलो ना, वो देख रहे हैं।",r:"Maa-papa ko bolo na, wo dekh rahe hain.",en:"Talk to my parents, they're handling it."},
+{s:"Aunty",h:"अच्छे रिश्ते जल्दी निकल जाते हैं!",r:"Acche rishte jaldi nikal jaate hain!",en:"Good matches go quickly!"}],
+q:[{q:"What is aunty pushing?",o:["Career","Health","Marriage","Education"],c:2,ex:"'Koi dekhi?' = seen anyone? Marriage context"},
+{q:"How to deflect?",o:["Say no","Redirect to parents","Agree","Get angry"],c:1,ex:"Classic Delhi move: 'maa-papa ko bolo'"}],
+vocab:[{w:"उम्र",r:"umar",m:"age",n:"Guilt trip: 'umar ho rahi hai'"},{w:"भतीजी",r:"bhatiiji",m:"niece",n:"Aunty matchmaking is peak Delhi"},{w:"रिश्ता",r:"rishta",m:"match/proposal",n:"'Rishta aaya hai' = proposal has come"}],
+tip:"Every aunty is a self-appointed matchmaker. 'Koi dekhi?' starts after age 25."},
+
+{w:6,d:1,t:"रिश्तेदारों से बचाव",e:"Dodging Nosy Relatives",ctx:"Uncle at family function asking about salary.",diff:"hard",
+dia:[{s:"Uncle",h:"सुना है स्टार्टअप कर रहे हो? कमाई कैसी?",r:"Suna hai startup kar rahe ho? Kamaai kaisi?",en:"Heard you're doing a startup? How's income?"},
+{s:"You",h:"अंकल जी, शुरुआत है। धीरे-धीरे होगा।",r:"Uncle ji, shuruaat hai. Dheere-dheere hoga.",en:"Uncle ji, it's the beginning. Gradually."},
+{s:"Uncle",h:"मेरा बेटा MNC में है। 25 लाख का पैकेज!",r:"Mera beta MNC mein hai. 25 lakh ka package!",en:"My son is in MNC. 25 lakh package!"},
+{s:"You",h:"हर किसी का रास्ता अलग होता है अंकल।",r:"Har kisi ka raasta alag hota hai Uncle.",en:"Everyone's path is different, Uncle."},
+{s:"Uncle",h:"हिम्मत है। चलो, खाना खा लो।",r:"Himmat hai. Chalo, khaana kha lo.",en:"You've got guts. Come, eat food."}],
+q:[{q:"What does uncle brag about?",o:["His car","House","Son's salary","Health"],c:2,ex:"'25 lakh ka package' — classic uncle flex"},
+{q:"How to handle it?",o:["Get angry","Agree","Everyone's path is different","Ignore"],c:2,ex:"Mature and diplomatic response"}],
+vocab:[{w:"कमाई",r:"kamaai",m:"income",n:"Rudest common question but every uncle asks"},{w:"धीरे-धीरे",r:"dheere-dheere",m:"gradually",n:"Reduplication for emphasis"},{w:"हिम्मत",r:"himmat",m:"courage/guts",n:"Can be compliment or sarcasm"}],
+tip:"Survival guide: never reveal salary. 'Sab theek hai' is the deflector. Head to food counter when questions get uncomfortable."},
+
+{w:7,d:1,t:"EMI की बात",e:"Salary Day Blues",ctx:"First of the month — everyone discussing money.",diff:"hard",
+dia:[{s:"F1",h:"सैलरी आते ही EMI में चली गई। हाथ में कुछ नहीं।",r:"Salary aate hi EMI mein chali gayi. Haath mein kuch nahi.",en:"Salary went straight to EMIs. Nothing left."},
+{s:"F2",h:"मेरा भी। कार, होम लोन, क्रेडिट कार्ड — सब मिलाकर सैलरी से ज़्यादा!",r:"Mera bhi. Car, home loan, credit card — sab milaakar salary se zyaada!",en:"Mine too. Car, home loan, CC — total more than salary!"},
+{s:"You",h:"इसलिए मैंने EMI नहीं ली। किराये पर रहो, आराम से।",r:"Isliye maine EMI nahi li. Kiraye par raho, aaraam se.",en:"That's why I have no EMI. Live on rent, peacefully."},
+{s:"F1",h:"एक दिन तू भी बोलेगा 'asset build करो'!",r:"Ek din tu bhi bolega 'asset build karo'!",en:"One day you'll also say 'build assets'!"}],
+q:[{q:"What happens to F1's salary?",o:["Saved","Goes to EMIs","Sent home","Invested"],c:1,ex:"'Sab EMI mein chali gayi'"},
+{q:"Speaker's approach?",o:["Bought house","No EMIs, rent","Has EMIs too","Parents help"],c:1,ex:"'Kiraye par raho, aaraam se' = live on rent, peacefully"}],
+vocab:[{w:"बचा",r:"bacha",m:"remaining/saved",n:"'Kuch nahi bacha' = nothing left"},{w:"किराये पर",r:"kiraye par",m:"on rent",n:"'Kiraya kitna?' = how much rent?"},{w:"आराम से",r:"aaraam se",m:"peacefully",n:"'Aaraam se karo' = do it calmly"}],
+tip:"EMI culture is PEAK Delhi. 'Salary aa gayi?' is the #1 question on the 1st of every month."},
+
+{w:9,d:1,t:"चाय पे चर्चा",e:"Political Discussion",ctx:"Chai stall political debate — classic Delhi.",diff:"hard",
+dia:[{s:"U1",h:"इस बार मोदी का कोई तोड़ नहीं। विकास हो रहा है।",r:"Is baar Modi ka koi tod nahi. Vikaas ho raha hai.",en:"No one can match Modi. Development happening."},
+{s:"U2",h:"विकास? मेरी दुकान के सामने गड्ढे हैं! वो भरो पहले।",r:"Vikaas? Meri dukaan ke saamne gaddhe hain! Wo bharo pehle.",en:"Development? Potholes in front of my shop! Fill those first."},
+{s:"You",h:"ये ऊपर-ऊपर की बातें हैं। जो भी आए, ज़िंदगी वही।",r:"Ye upar-upar ki baatein hain. Jo bhi aaye, zindagi wahi.",en:"Surface-level talk. Whoever comes, life stays same."},
+{s:"U1",h:"निराश मत हो बेटा। वोट ज़रूर डालना।",r:"Nirash mat ho beta. Vote zaroor daalna.",en:"Don't be pessimistic. Definitely vote."}],
+q:[{q:"Uncle1's position?",o:["Anti-gov","Pro-development","Neutral","Doesn't care"],c:1,ex:"Supports 'vikaas' (development)"},
+{q:"Speaker's attitude?",o:["Very political","Pessimistic","Supports U1","Angry"],c:1,ex:"'Jo bhi aaye, zindagi wahi' = cynical"}],
+vocab:[{w:"तोड़",r:"tod",m:"match/counter",n:"From wrestling. 'Koi tod nahi'"},{w:"गड्ढे",r:"gaddhe",m:"potholes",n:"Delhi's real infrastructure problem"},{w:"हक़",r:"haq",m:"right",n:"'Ye mera haq hai' = this is my right"}],
+tip:"NEVER start political arguments in Delhi unless you have 2 hours. Chai stalls are the real parliaments."},
+
+{w:11,d:1,t:"IPL पार्टी",e:"IPL Debate at Bar",ctx:"Friends arguing during IPL match at sports bar.",diff:"hard",
+dia:[{s:"F1",h:"DC आज नहीं जीतेगी। बॉलिंग कमज़ोर है।",r:"DC aaj nahi jeetegi. Bowling kamzor hai.",en:"DC won't win. Bowling is weak."},
+{s:"F2",h:"कमज़ोर? पिछले मैच में तीन विकेट एक ओवर में!",r:"Kamzor? Pichle match mein teen wicket ek over mein!",en:"Weak? 3 wickets in one over last match!"},
+{s:"You",h:"चुप करो, मैच देखो। बीयर ख़त्म हो रही, और लाओ।",r:"Chup karo, match dekho. Beer khatam ho rahi, aur lao.",en:"Shut up, watch match. Beer finishing, bring more."},
+{s:"F1",h:"हमेशा शांति दूत बनता है। किसकी टीम?",r:"Hamesha shaanti doot banta hai. Kiski team?",en:"Always peace ambassador. Whose team?"},
+{s:"You",h:"जिसकी बीयर! 😂",r:"Jiski beer! 😂",en:"Whoever's buying beer! 😂"}],
+q:[{q:"Which team does F1 doubt?",o:["MI","CSK","DC","RCB"],c:2,ex:"'DC aaj nahi jeetegi'"},
+{q:"Speaker prioritizes?",o:["Match","Beer","Leaving","Sleeping"],c:1,ex:"'Beer khatam ho rahi, aur lao'"}],
+vocab:[{w:"कमज़ोर",r:"kamzor",m:"weak",n:"Opposite: 'takatwar'"},{w:"चुप करो",r:"chup karo",m:"shut up",n:"'Chup!' alone is rude"},{w:"शांति दूत",r:"shaanti doot",m:"peace ambassador",n:"Sarcastic for peacemaker"}],
+tip:"IPL season = religion. 'Is baar pakka' is what DC fans say every year."}
+];
+
+const SLANG={
+greetings:[
+{h:"क्या हाल-चाल?",r:"Kya haal-chaal?",m:"How are you?",ctx:"Standard casual greeting",f:"casual"},
+{h:"क्या बात है!",r:"Kya baat hai!",m:"Wow! / What's up!",ctx:"Surprise or admiration",f:"casual"},
+{h:"ओये!",r:"Oye!",m:"Hey! (attention)",ctx:"Calling someone. Can be rude to strangers.",f:"slang"},
+{h:"कैसा है बे?",r:"Kaisa hai be?",m:"How are you man?",ctx:"Very casual. Close friends only.",f:"slang"},
+{h:"ज़िंदगी झंड है",r:"Zindagi jhand hai",m:"Life is messed up",ctx:"When everything's going wrong.",f:"slang"},
+{h:"बढ़िया बढ़िया!",r:"Badhiya badhiya!",m:"Great great!",ctx:"Enthusiastic positive response",f:"casual"},
+{h:"चल भाई, मिलते हैं",r:"Chal bhai, milte hain",m:"Let's go, we'll meet",ctx:"Standard goodbye",f:"casual"},
+{h:"फिर मिलेंगे",r:"Phir milenge",m:"We'll meet again",ctx:"Slightly more formal bye",f:"casual"}],
+emotions:[
+{h:"दिमाग़ मत खा",r:"Dimaag mat kha",m:"Don't eat my brain (Don't annoy me)",ctx:"When someone is really annoying",f:"slang"},
+{h:"जलने वालों को जलने दो",r:"Jalne waalon ko jalne do",m:"Let the haters burn",ctx:"When people are jealous",f:"slang"},
+{h:"टेंशन मत ले",r:"Tension mat le",m:"Don't stress",ctx:"Consoling someone",f:"casual"},
+{h:"मेरा दिमाग़ घूम गया",r:"Mera dimaag ghoom gaya",m:"My brain spun (shocked)",ctx:"Something unbelievable happened",f:"casual"},
+{h:"फ़ट गई",r:"Phat gayi",m:"Got scared / Panicked",ctx:"When someone chickened out",f:"slang"},
+{h:"वाट लग गई",r:"Vaat lag gayi",m:"Everything is ruined",ctx:"Things went badly wrong",f:"slang"},
+{h:"खून खौल रहा है",r:"Khoon khaul raha hai",m:"Blood is boiling (furious)",ctx:"Extreme anger",f:"casual"},
+{h:"बहुत जलता है",r:"Bahut jalta hai",m:"Very jealous",ctx:"Describing a jealous person",f:"slang"}],
+food:[
+{h:"पेट पूजा",r:"Pet pooja",m:"Stomach worship (eating time!)",ctx:"Announcing it's time to eat",f:"casual"},
+{h:"चटोरा",r:"Chatora",m:"Foodie",ctx:"Affectionate term for food lovers",f:"casual"},
+{h:"एक और प्लेट!",r:"Ek aur plate!",m:"One more plate!",ctx:"Highest compliment to vendor",f:"casual"},
+{h:"मज़ा आ गया",r:"Maza aa gaya",m:"Had a blast / was delicious",ctx:"After amazing food or great time",f:"casual"},
+{h:"पेट फट जाएगा",r:"Pet phat jayega",m:"Stomach will burst",ctx:"Eaten way too much",f:"casual"},
+{h:"तीखा लगा?",r:"Teekha laga?",m:"Too spicy?",ctx:"Checking spice tolerance",f:"casual"},
+{h:"खाने में जुगाड़ कर लेंगे",r:"Khaane mein jugaad kar lenge",m:"We'll manage food somehow",ctx:"No planned food but it'll work out",f:"casual"},
+{h:"पानी पूरी / गोलगप्पा",r:"Paani puri / Golgappa",m:"Holy street food",ctx:"Delhi says golgappa, Mumbai says pani puri",f:"casual"}],
+insults:[
+{h:"चल हट!",r:"Chal hat!",m:"Get lost!",ctx:"Dismissing someone. Playful between friends.",f:"slang"},
+{h:"बकवास मत कर",r:"Bakwaas mat kar",m:"Don't talk nonsense",ctx:"When someone's talking rubbish",f:"slang"},
+{h:"पागल है क्या?",r:"Pagal hai kya?",m:"Are you crazy?",ctx:"Often playful between friends",f:"slang"},
+{h:"तेरा दिमाग़ ख़राब है",r:"Tera dimaag kharab hai",m:"Your brain is spoiled",ctx:"Stronger 'pagal hai kya'",f:"slang"},
+{h:"चालू आदमी",r:"Chaalu aadmi",m:"Streetwise/cunning",ctx:"Can be compliment or insult",f:"slang"},
+{h:"फ़ेंकू",r:"Phenku",m:"Show-off / bragger",ctx:"Someone who exaggerates",f:"slang"},
+{h:"वो तो छपरी है",r:"Wo to chhapri hai",m:"He's tacky/classless",ctx:"Delhi slang for no class",f:"slang"},
+{h:"ऐसे कैसे?",r:"Aise kaise?",m:"How can that be?",ctx:"Something unfair happened",f:"casual"}],
+compliments:[
+{h:"एकदम झक्कास!",r:"Ekdum jhakkaas!",m:"Absolutely fantastic!",ctx:"High praise for anything",f:"casual"},
+{h:"कमाल कर दिया!",r:"Kamaal kar diya!",m:"You did amazing!",ctx:"Appreciating achievement",f:"casual"},
+{h:"तगड़ा है!",r:"Tagda hai!",m:"Impressive/strong!",ctx:"Something powerful or very good",f:"slang"},
+{h:"सॉलिड!",r:"Solid!",m:"Awesome!",ctx:"Universal Delhi approval",f:"casual"},
+{h:"बवाल!",r:"Bawaal!",m:"Riot! (Amazing!)",ctx:"Something incredibly impressive",f:"slang"},
+{h:"जबरदस्त!",r:"Jabardast!",m:"Tremendous!",ctx:"Strong appreciation. Food, movies, anything.",f:"casual"},
+{h:"क्लास है!",r:"Class hai!",m:"That's classy!",ctx:"Admiring style or quality",f:"casual"},
+{h:"भाई, जीनियस है तू",r:"Bhai, genius hai tu",m:"Bro, you're a genius",ctx:"Clever idea or solution",f:"casual"}],
+bargaining:[
+{h:"सही दाम लगाओ",r:"Sahi daam lagao",m:"Quote the right price",ctx:"Opening negotiation move",f:"casual"},
+{h:"इतना महँगा?!",r:"Itna mehenga?!",m:"This expensive?!",ctx:"Standard shock at any price",f:"casual"},
+{h:"कम करो ना!",r:"Kam karo na!",m:"Reduce a bit!",ctx:"Universal bargaining request",f:"casual"},
+{h:"आख़िरी दाम बताओ",r:"Aakhiri daam batao",m:"Tell final price",ctx:"Getting to real price",f:"casual"},
+{h:"छोड़ो, आगे देखता हूँ",r:"Chhodo, aage dekhta hoon",m:"Leave it, I'll look ahead",ctx:"THE power move. Walk away.",f:"casual"},
+{h:"रेगुलर कस्टमर हूँ",r:"Regular customer hoon",m:"I'm a regular",ctx:"Leveraging loyalty",f:"casual"},
+{h:"यही रेट सबको देते हो?",r:"Yahi rate sabko dete ho?",m:"Same rate for everyone?",ctx:"Implying overcharge",f:"casual"},
+{h:"पक्का? और कम नहीं?",r:"Pakka? Aur kam nahi?",m:"Sure? Can't go lower?",ctx:"After they say 'final'",f:"casual"}]
+};
+
+const VOCAB=[
+{theme:"Numbers & Money 💰",words:[
+{h:"हज़ार",r:"hazaar",m:"thousand",d:"'Ek hazaar' sounds like 'ek hajaar'"},{h:"लाख",r:"laakh",m:"100,000",d:"Indian numbering: 1,00,000"},
+{h:"सस्ता",r:"sasta",m:"cheap",d:"'Saste mein de do'"},{h:"महँगा",r:"mehenga",m:"expensive",d:"'Bohot mehenga hai bhai!'"},
+{h:"उधार",r:"udhaar",m:"credit/loan",d:"'Udhaar de do' — common at local shops"},{h:"छुट्टा",r:"chhutta",m:"change (money)",d:"Eternal problem in Delhi"},
+{h:"बिल",r:"bill",m:"bill/receipt",d:"'Bill de do bhaiya'"},{h:"पैसे",r:"paise",m:"money",d:"'Paise nahi hain yaar'"}],
+quiz:[{p:"'लाख' means?",o:["Thousand","Hundred","100,000","Million"],c:2},{p:"Want something cheaper, say:",o:["Mehenga karo","Sasta karo","Zyaada do","Bill do"],c:1},{p:"'छुट्टा' is:",o:["Holiday","Small change","Discount","Tax"],c:1}]},
+
+{theme:"Food & Eating 🍛",words:[
+{h:"रोटी",r:"roti",m:"flatbread",d:"'Roti kapda makaan' = basics of life"},{h:"दाल",r:"daal",m:"lentil curry",d:"'Daal-roti' = basic meal"},
+{h:"पराठा",r:"paratha",m:"stuffed flatbread",d:"Aloo paratha = Delhi breakfast religion"},{h:"लस्सी",r:"lassi",m:"yogurt drink",d:"'Meethi ya namkeen?' = sweet or salty?"},
+{h:"चटनी",r:"chatni",m:"chutney",d:"Green chutney makes everything better"},{h:"ढाबा",r:"dhaba",m:"roadside restaurant",d:"Highway dhaba > fancy restaurants"},
+{h:"अचार",r:"achaar",m:"pickle",d:"'Aam ka achaar' = mango pickle"},{h:"सब्ज़ी",r:"sabzi",m:"vegetable dish",d:"'Aaj kya sabzi?' = today's veg?"}],
+quiz:[{p:"'पराठा' is?",o:["Rice","Stuffed flatbread","Curry","Drink"],c:1},{p:"'ढाबा' is a:",o:["Temple","Mall","Roadside restaurant","Bar"],c:2},{p:"'लस्सी' made from:",o:["Fruit","Tea","Yogurt","Milk"],c:2}]},
+
+{theme:"Transport 🛺",words:[
+{h:"सीधा",r:"seedha",m:"straight",d:"'Seedha jaao' = go straight"},{h:"दाएँ",r:"daayein",m:"right",d:"'Daayein mud jaao' = turn right"},
+{h:"बाएँ",r:"baayein",m:"left",d:"'Baayein waali gali' = left lane"},{h:"चौराहा",r:"chauraaha",m:"intersection",d:"'Red light ka chauraaha'"},
+{h:"जाम",r:"jaam",m:"traffic jam",d:"Daily Delhi reality"},{h:"शॉर्टकट",r:"shortcut",m:"shortcut",d:"Every Delhiite knows secret gali shortcuts"},
+{h:"U-टर्न",r:"U-turn",m:"U-turn",d:"'Aage se U-turn le lo'"},{h:"फ़ुटपाथ",r:"footpath",m:"sidewalk",d:"In Delhi, footpaths are for parking"}],
+quiz:[{p:"'सीधा' means:",o:["Left","Right","Straight","Back"],c:2},{p:"'चौराहा' is:",o:["Bridge","Tunnel","Intersection","Highway"],c:2},{p:"'जाम' in Delhi:",o:["Preserve","Traffic jam","Music","Nothing"],c:1}]},
+
+{theme:"Emotions 😤",words:[
+{h:"ख़ुश",r:"khush",m:"happy",d:"'Bahut khush hoon'"},{h:"ग़ुस्सा",r:"gussa",m:"angry",d:"'Gussa mat ho' = don't be angry"},
+{h:"उदास",r:"udaas",m:"sad",d:"'Kyon udaas hai?'"},{h:"मज़ा",r:"maza",m:"fun",d:"'Maza aa gaya!' = so fun!"},
+{h:"बोर",r:"bore",m:"bored",d:"Hindi-English mix"},{h:"परेशान",r:"pareshaan",m:"worried",d:"'Kyon pareshaan hai?'"},
+{h:"डर",r:"dar",m:"fear",d:"'Darr mat' = don't fear"},{h:"शरमाना",r:"sharmaana",m:"shy/embarrassed",d:"'Sharma mat' = don't be shy"}],
+quiz:[{p:"'ग़ुस्सा' means:",o:["Happy","Angry","Sad","Bored"],c:1},{p:"'मज़ा आ गया!' means:",o:["Sad","Angry","Having fun","Leaving"],c:2},{p:"'परेशान' means:",o:["Relaxed","Worried","Excited","Lazy"],c:1}]},
+
+{theme:"Family 👨‍👩‍👧‍👦",words:[
+{h:"भाई",r:"bhai",m:"brother/dude",d:"Used for EVERYONE in Delhi"},{h:"यार",r:"yaar",m:"friend/buddy",d:"THE most important Delhi word"},
+{h:"आंटी/अंकल",r:"aunty/uncle",m:"any older person",d:"Not just relatives! Everyone."},{h:"रिश्तेदार",r:"rishtedaar",m:"relatives",d:"'Rishtedaar aa rahe hain' = panic"},
+{h:"ससुराल",r:"sasuraal",m:"in-laws' house",d:"Often said with dread"},{h:"बच्चे",r:"bachche",m:"children",d:"'Bachche kaise hain?' standard greeting"},
+{h:"पत्नी/बीवी",r:"patni/biwi",m:"wife",d:"Patni=formal, biwi=casual"},{h:"पति",r:"pati",m:"husband",d:"'Pati dev' = hubby (sometimes sarcastic)"}],
+quiz:[{p:"'यार' is used as:",o:["Insult","Friend/buddy","Formal greeting","Name"],c:1},{p:"'आंटी' in Delhi:",o:["Only your aunt","Any older woman","Family only","Neighbors only"],c:1},{p:"'ससुराल' means:",o:["Office","School","In-laws' house","Market"],c:2}]},
+
+{theme:"Office & Work 💼",words:[
+{h:"छुट्टी",r:"chhuti",m:"leave/holiday",d:"'Aaj chhuti le li' = took leave"},{h:"बॉस",r:"boss",m:"boss",d:"'Boss ka mood kharab hai' daily warning"},
+{h:"सैलरी",r:"salary",m:"salary",d:"'Salary aa gayi?' — 1st of month question"},{h:"नौकरी",r:"naukri",m:"job",d:"'Naukri lag gayi' = got a job"},
+{h:"डेडलाइन",r:"deadline",m:"deadline",d:"Perpetual state"},{h:"प्रमोशन",r:"promotion",m:"promotion",d:"Office gossip topic #1"},
+{h:"मीटिंग",r:"meeting",m:"meeting",d:"'Meeting mein hoon' = universal excuse"},{h:"WFH",r:"WFH",m:"work from home",d:"Post-COVID staple"}],
+quiz:[{p:"'छुट्टी' means:",o:["Overtime","Leave/Holiday","Meeting","Salary"],c:1},{p:"'नौकरी लग गई' means:",o:["Lost job","Got a job","Changed job","No job"],c:1},{p:"1st of month question:",o:["Chhuti?","Salary aa gayi?","Boss kahaan?","Meeting?"],c:1}]},
+
+{theme:"Weather 🌤️",words:[
+{h:"गर्मी",r:"garmi",m:"heat/summer",d:"Delhi: 45°C+ summers"},{h:"सर्दी",r:"sardi",m:"cold/winter",d:"Delhi winters + fog"},
+{h:"बारिश",r:"baarish",m:"rain",d:"Delhi rain = instant waterlogging"},{h:"कोहरा",r:"kohra",m:"fog",d:"Cancels flights & trains in Dec"},
+{h:"प्रदूषण",r:"pradushan",m:"pollution",d:"THE word for Delhi Nov-Dec"},{h:"ठंड",r:"thand",m:"cold feeling",d:"'Bahut thand hai'"},
+{h:"लू",r:"loo",m:"heat wave",d:"DANGEROUS in May-June"},{h:"धूप",r:"dhoop",m:"sunshine",d:"Delhi sun is merciless"}],
+quiz:[{p:"'प्रदूषण' means:",o:["Rain","Pollution","Fog","Heat"],c:1},{p:"'कोहरा' causes:",o:["Flooding","Flight cancellations","Heatstroke","Nothing"],c:1},{p:"'लू' is:",o:["Cold wave","Rain","Heat wave","Dust"],c:2}]},
+
+{theme:"Shopping 🛍️",words:[
+{h:"कपड़े",r:"kapde",m:"clothes",d:"'Naye kapde liye?' = bought new?"},{h:"कुर्ता",r:"kurta",m:"long tunic",d:"Delhi smart-casual for men"},
+{h:"जूते",r:"joote",m:"shoes",d:"'Joote utaaro' = take off shoes at homes"},{h:"सेल",r:"sale",m:"sale",d:"'Sale lagi hai!' Delhiites LOVE sales"},
+{h:"ट्रायल",r:"trial",m:"try on",d:"'Trial room kidhar?' = where's fitting room?"},{h:"साइज़",r:"size",m:"size",d:"'Bada size dikhao' = show bigger"},
+{h:"गहने",r:"gehne",m:"jewelry",d:"Essential for Indian weddings"},{h:"साड़ी",r:"saari",m:"saree",d:"Traditional for weddings/festivals"}],
+quiz:[{p:"Before entering Delhi home:",o:["Ring bell","Take off shoes","Bring gifts","Call ahead"],c:1},{p:"'सेल लगी है' means:",o:["Expensive","Sale is on","Closed","Out of stock"],c:1}]},
+
+{theme:"Health 🏥",words:[
+{h:"बुखार",r:"bukhaar",m:"fever",d:"Mom: 'Haldi doodh pi!'"},{h:"सिरदर्द",r:"sirdard",m:"headache",d:"'Bohot sirdard ho raha hai'"},
+{h:"दवाई",r:"dawai",m:"medicine",d:"'Dawai kha li?' Mom's daily question"},{h:"नींद",r:"neend",m:"sleep",d:"'Neend nahi aa rahi' = can't sleep"},
+{h:"तबीयत",r:"tabiyat",m:"health",d:"'Tabiyat kaisi hai?' for sick people"},{h:"आराम",r:"aaraam",m:"rest",d:"Doctor's fav prescription"},
+{h:"पेट दर्द",r:"pet dard",m:"stomach ache",d:"Blame: 'bahar ka khaana'"},{h:"थकान",r:"thakaan",m:"tiredness",d:"'Bahut thakaan ho rahi hai'"}],
+quiz:[{p:"Mom's cure for everything:",o:["Hospital","Haldi doodh","Ignore","Exercise"],c:1},{p:"'तबीयत' refers to:",o:["Weight","Height","Overall health","Mood"],c:2},{p:"'नींद नहीं आ रही':",o:["Sleeping lots","Can't sleep","Nightmares","Early wake"],c:1}]}
+];
+
+// ═══ HELPERS ═══
+const SK="dg_p";
+const DP={xp:0,streak:0,last:null,done:0,dxp:0,ls:0,lt:0,cl:[],cv:[],cs:[]};
+const gl=xp=>{let l=LEVELS[0];for(const v of LEVELS)if(xp>=v.xp)l=v;return l;};
+const gn=xp=>LEVELS.find(l=>xp<l.xp)||null;
+const lp=()=>{try{const d=localStorage.getItem(SK);return d?{...DP,...JSON.parse(d)}:{...DP};}catch{return{...DP};}};
+const sp=p=>{try{localStorage.setItem(SK,JSON.stringify(p));}catch{}};
+
+function say(text,rate=0.85){
+  return new Promise(r=>{
+    if(!window.speechSynthesis){r();return;}
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    const v=window.speechSynthesis.getVoices();
+    const hi=v.find(x=>x.lang.startsWith("hi"));
+    if(hi)u.voice=hi;u.lang="hi-IN";u.rate=rate;u.pitch=1.05;u.onend=r;u.onerror=r;
+    window.speechSynthesis.speak(u);
+  });
+}
+
+// ═══ MICRO COMPONENTS ═══
+function BG(){return(<div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none"}}><div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,#0a0a0f 0%,#1a0a1e 30%,#0f1a2e 60%,#0a0a0f 100%)"}}/><div style={{position:"absolute",top:"-50%",left:"-50%",width:"200%",height:"200%",background:"radial-gradient(ellipse at 30% 20%,rgba(255,107,53,0.06) 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(138,43,226,0.05) 0%,transparent 50%)",animation:"bgDrift 25s ease-in-out infinite"}}/></div>);}
+
+function XB({xp}){const l=gl(xp),n=gn(xp),p=n?((xp-l.xp)/(n.xp-l.xp))*100:100;return(<div style={{display:"flex",alignItems:"center",gap:"12px",padding:"6px 0"}}><span style={{fontSize:"22px"}}>{l.emoji}</span><div style={{flex:1}}><div style={{display:"flex",justifyContent:"space-between",fontSize:"11px",color:"#aaa",marginBottom:"3px"}}><span>{l.name} · {l.eng}</span><span>{xp} XP{n?` / ${n.xp}`:""}</span></div><div style={{height:"5px",background:"rgba(255,255,255,0.07)",borderRadius:"3px",overflow:"hidden"}}><div style={{height:"100%",borderRadius:"3px",width:`${p}%`,background:"linear-gradient(90deg,#FF6B35,#FFD93D)",transition:"width 0.8s"}}/></div></div></div>);}
+
+function Sp({text,rate,size=34}){const[on,set]=useState(false);return(<button onClick={async()=>{set(true);await say(text,rate||0.85);set(false);}} style={{width:`${size}px`,height:`${size}px`,borderRadius:"50%",border:"none",cursor:"pointer",background:on?"rgba(255,107,53,0.3)":"rgba(255,107,53,0.12)",color:"#FF6B35",display:"flex",alignItems:"center",justifyContent:"center",fontSize:`${size*0.4}px`,transition:"all 0.2s",flexShrink:0}}>{on?"⏸":"🔊"}</button>);}
+
+function Cd({children,style={},onClick}){const[h,sH]=useState(false);return(<div onClick={onClick} onMouseEnter={()=>sH(true)} onMouseLeave={()=>sH(false)} style={{background:"rgba(255,255,255,0.035)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:"14px",padding:"18px",transition:"all 0.25s",cursor:onClick?"pointer":"default",...(onClick&&h?{background:"rgba(255,255,255,0.06)",borderColor:"rgba(255,107,53,0.25)",transform:"translateY(-2px)"}:{}),...style}}>{children}</div>);}
+
+function Bb({onClick}){return <button onClick={onClick} style={{background:"none",border:"none",color:"#777",cursor:"pointer",fontSize:"13px",marginBottom:"10px",padding:"4px 0"}}>← Back</button>;}
+
+// ═══ HOME ═══
+function Home({p,nav}){
+  const wk=Math.min(Math.ceil((p.done+1)/3),12),ph=WPLAN[Math.min(Math.floor((wk-1)/2),5)],lv=gl(p.xp);
+  const pct=Math.round((p.done/EX.length)*100);
+  return(<div style={{animation:"fadeIn 0.45s ease-out"}}>
+    <Cd style={{marginTop:"8px",background:"linear-gradient(135deg,rgba(255,107,53,0.1),rgba(138,43,226,0.07))",border:"1px solid rgba(255,107,53,0.18)"}}>
+      <div style={{fontSize:"21px",fontWeight:800}}>{p.xp===0?"चलो शुरू करें! 🚀":`${lv.emoji} ${lv.name}!`}</div>
+      <div style={{fontSize:"13px",color:"#bbb",lineHeight:1.6,marginTop:"4px"}}>{p.xp===0?"3 months to speak Delhi Hindi. 100% offline. No API. Let's go yaar!":`Week ${wk}: ${ph.focus} — ${ph.goals}`}</div>
+      <div style={{fontSize:"11px",color:"#888",marginTop:"4px"}}>{pct}% done · {EX.length-p.done} lessons left</div>
+    </Cd>
+    <div style={{marginTop:"20px",marginBottom:"8px",fontSize:"11px",color:"#777",fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase"}}>START LEARNING</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px"}}>
+      {[{i:"👂",t:"सुनो समझो",e:"Listen",s:"listen",n:EX.length+" lessons"},{i:"🔥",t:"दिल्ली स्लैंग",e:"Slang",s:"slang",n:Object.keys(SLANG).length+" categories"},
+        {i:"📚",t:"शब्द भंडार",e:"Vocabulary",s:"vocab",n:VOCAB.length+" themes"},{i:"🗺️",t:"रोडमैप",e:"12-Week Plan",s:"plan",n:"Your path"}].map((x,i)=>(
+        <Cd key={i} onClick={()=>nav(x.s)} style={{animation:`slideUp 0.4s ease-out ${i*0.07}s both`}}>
+          <div style={{fontSize:"26px",marginBottom:"6px"}}>{x.i}</div>
+          <div style={{fontSize:"14px",fontWeight:700}}>{x.t}</div>
+          <div style={{fontSize:"10px",color:"#999",marginTop:"2px"}}>{x.e}</div>
+          <div style={{fontSize:"10px",color:"#FF6B35",marginTop:"4px"}}>{x.n}</div>
+        </Cd>))}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginTop:"18px"}}>
+      {[{v:p.done,l:"Lessons",i:"📖"},{v:p.lt>0?Math.round((p.ls/p.lt)*100)+"%":"0%",l:"Accuracy",i:"🎯"},{v:p.xp,l:"XP",i:"⚡"}].map((s,i)=>(
+        <Cd key={i} style={{textAlign:"center",padding:"12px"}}><div style={{fontSize:"18px"}}>{s.i}</div><div style={{fontSize:"20px",fontWeight:800,color:"#FF6B35",marginTop:"3px"}}>{s.v}</div><div style={{fontSize:"9px",color:"#888"}}>{s.l}</div></Cd>))}
+    </div>
+  </div>);
+}
+
+// ═══ LISTEN ═══
+function Listen({p,sP,nav}){
+  const[ex,sE]=useState(null),[ans,sA]=useState({}),[show,sS]=useState(false),[playing,sPl]=useState(false);
+  const avail=EX.filter(e=>!p.cl.includes(e.w+"-"+e.d));
+  const done=EX.filter(e=>p.cl.includes(e.w+"-"+e.d));
+
+  async function playAll(){if(!ex?.dia)return;sPl(true);for(const l of ex.dia){await say(l.h,ex.diff==="hard"?1.0:0.85);await new Promise(r=>setTimeout(r,350));}sPl(false);}
+
+  function check(){
+    let c=0;ex.q.forEach((q,i)=>{if(ans[i]===q.c)c++;});
+    const xp=c*15+(c===ex.q.length?20:0),id=ex.w+"-"+ex.d;
+    const np={...p,xp:p.xp+xp,dxp:p.dxp+xp,done:p.done+(p.cl.includes(id)?0:1),ls:p.ls+c,lt:p.lt+ex.q.length,cl:[...new Set([...p.cl,id])],last:new Date().toDateString()};
+    sP(np);sp(np);sS(true);
+  }
+  const score=show?Object.values(ans).filter((a,i)=>a===ex.q[i].c).length:0;
+
+  if(!ex) return(<div style={{animation:"fadeIn 0.4s"}}>
+    <Bb onClick={()=>nav("home")}/><div style={{fontSize:"21px",fontWeight:800}}>👂 सुनो और समझो</div>
+    <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>{EX.length} lessons · {p.done} completed</div>
+    {avail.length>0&&<><div style={{fontSize:"11px",color:"#FF6B35",fontWeight:700,marginBottom:"8px"}}>NEXT UP</div>
+    {avail.slice(0,6).map((e,i)=>(<Cd key={i} onClick={()=>{sE(e);sA({});sS(false);}} style={{marginBottom:"7px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+        <div style={{width:"34px",height:"34px",borderRadius:"50%",background:"rgba(255,107,53,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:800,color:"#FF6B35"}}>W{e.w}</div>
+        <div style={{flex:1}}><div style={{fontSize:"13px",fontWeight:700}}>{e.t}</div><div style={{fontSize:"10px",color:"#aaa"}}>{e.e}</div></div>
+        <div style={{fontSize:"9px",padding:"3px 8px",borderRadius:"4px",background:e.diff==="easy"?"rgba(52,211,153,0.12)":e.diff==="medium"?"rgba(255,193,7,0.12)":"rgba(239,68,68,0.12)",color:e.diff==="easy"?"#34D399":e.diff==="medium"?"#FFD93D":"#EF4444",fontWeight:600}}>{e.diff}</div>
+      </div></Cd>))}</>}
+    {done.length>0&&<><div style={{fontSize:"11px",color:"#34D399",fontWeight:700,marginTop:"14px",marginBottom:"8px"}}>COMPLETED ✓</div>
+    {done.map((e,i)=>(<Cd key={i} onClick={()=>{sE(e);sA({});sS(false);}} style={{marginBottom:"5px",opacity:0.7}}>
+      <div style={{display:"flex",alignItems:"center",gap:"10px"}}><span style={{color:"#34D399"}}>✓</span><div style={{flex:1}}><div style={{fontSize:"12px",fontWeight:600}}>{e.t} · {e.e}</div></div><span style={{fontSize:"10px",color:"#888"}}>W{e.w}</span></div></Cd>))}</>}
+  </div>);
+
+  return(<div style={{animation:"fadeIn 0.4s"}}>
+    <Bb onClick={()=>sE(null)}/>
+    <Cd style={{marginBottom:"12px",border:"1px solid rgba(255,107,53,0.18)"}}>
+      <div style={{display:"flex",justifyContent:"space-between"}}><div><div style={{fontSize:"15px",fontWeight:700}}>{ex.t} · {ex.e}</div><div style={{fontSize:"11px",color:"#aaa",marginTop:"2px"}}>{ex.ctx}</div></div>
+      <div style={{fontSize:"9px",padding:"3px 8px",borderRadius:"4px",background:ex.diff==="easy"?"rgba(52,211,153,0.12)":"rgba(255,193,7,0.12)",color:ex.diff==="easy"?"#34D399":"#FFD93D",fontWeight:600}}>{ex.diff}</div></div></Cd>
+
+    <button onClick={playAll} disabled={playing} style={{width:"100%",padding:"11px",borderRadius:"9px",border:"none",cursor:"pointer",background:"linear-gradient(135deg,rgba(255,107,53,0.18),rgba(138,43,226,0.12))",color:"#FF6B35",fontWeight:700,fontSize:"13px",marginBottom:"12px"}}>{playing?"🔊 Playing...":"▶️ पूरी बातचीत सुनो"}</button>
+
+    {ex.dia.map((l,i)=>(<div key={i} style={{display:"flex",gap:"8px",alignItems:"flex-start",padding:"9px",borderRadius:"9px",marginBottom:"5px",background:i%2===0?"rgba(255,107,53,0.04)":"rgba(138,43,226,0.04)"}}>
+      <Sp text={l.h} size={28}/><div style={{flex:1}}>
+        <div style={{fontSize:"10px",fontWeight:600,color:i%2===0?"#FF6B35":"#8B5CF6"}}>{l.s}</div>
+        <div style={{fontSize:"14px",fontWeight:600,lineHeight:1.5}}>{l.h}</div>
+        <div style={{fontSize:"11px",color:"#999",fontStyle:"italic"}}>{l.r}</div>
+        {show&&<div style={{fontSize:"10px",color:"#34D399",marginTop:"3px"}}>→ {l.en}</div>}
+      </div></div>))}
+
+    <div style={{fontSize:"13px",fontWeight:700,margin:"14px 0 8px"}}>🧠 Questions</div>
+    {ex.q.map((q,qi)=>(<Cd key={qi} style={{marginBottom:"7px",border:show?(ans[qi]===q.c?"1px solid rgba(52,211,153,0.35)":"1px solid rgba(239,68,68,0.35)"):"1px solid rgba(255,255,255,0.07)"}}>
+      <div style={{fontSize:"12px",fontWeight:600,marginBottom:"6px"}}>{qi+1}. {q.q}</div>
+      {q.o.map((o,oi)=>(<button key={oi} onClick={()=>!show&&sA({...ans,[qi]:oi})} style={{display:"block",width:"100%",padding:"8px 12px",marginBottom:"3px",borderRadius:"6px",border:"none",cursor:show?"default":"pointer",textAlign:"left",fontSize:"12px",
+        background:show?(oi===q.c?"rgba(52,211,153,0.12)":ans[qi]===oi?"rgba(239,68,68,0.12)":"rgba(255,255,255,0.02)"):(ans[qi]===oi?"rgba(255,107,53,0.12)":"rgba(255,255,255,0.03)"),
+        color:show?(oi===q.c?"#34D399":ans[qi]===oi?"#EF4444":"#888"):(ans[qi]===oi?"#FF6B35":"#ccc"),fontWeight:ans[qi]===oi||(show&&oi===q.c)?600:400}}>{String.fromCharCode(65+oi)}. {o}</button>))}
+      {show&&<div style={{marginTop:"6px",padding:"6px 8px",background:"rgba(255,255,255,0.02)",borderRadius:"5px",fontSize:"11px",color:"#aaa"}}>💡 {q.ex}</div>}
+    </Cd>))}
+
+    {!show?<button onClick={check} disabled={Object.keys(ans).length<ex.q.length} style={{width:"100%",padding:"13px",borderRadius:"10px",border:"none",cursor:"pointer",background:Object.keys(ans).length>=ex.q.length?"linear-gradient(135deg,#FF6B35,#FFD93D)":"rgba(255,255,255,0.04)",color:Object.keys(ans).length>=ex.q.length?"#000":"#666",fontWeight:700,fontSize:"14px",marginTop:"6px"}}>जवाब चेक करो ✓</button>
+    :<div style={{animation:"popIn 0.3s"}}>
+      <Cd style={{textAlign:"center",background:"rgba(255,107,53,0.07)",marginTop:"6px"}}><div style={{fontSize:"26px",marginBottom:"4px"}}>{score===ex.q.length?"🎉":"💪"}</div><div style={{fontSize:"15px",fontWeight:700}}>{score}/{ex.q.length} Correct!</div><div style={{fontSize:"11px",color:"#FFD93D"}}>+{score*15+(score===ex.q.length?20:0)} XP</div></Cd>
+      {ex.vocab?.length>0&&<Cd style={{marginTop:"10px"}}><div style={{fontSize:"12px",fontWeight:700,marginBottom:"6px"}}>📝 Vocabulary</div>
+        {ex.vocab.map((v,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:"7px",padding:"4px 0",borderBottom:i<ex.vocab.length-1?"1px solid rgba(255,255,255,0.03)":"none"}}><Sp text={v.w} size={26}/><div><b>{v.w}</b> <span style={{color:"#888",fontSize:"11px"}}>({v.r})</span> <span style={{color:"#aaa",fontSize:"11px"}}>— {v.m}</span>{v.n&&<div style={{fontSize:"10px",color:"#666"}}>{v.n}</div>}</div></div>))}</Cd>}
+      {ex.tip&&<Cd style={{marginTop:"10px",background:"rgba(255,193,7,0.05)",border:"1px solid rgba(255,193,7,0.12)"}}><div style={{fontSize:"12px",lineHeight:1.6}}>🏙️ <b>Delhi Tip:</b> {ex.tip}</div></Cd>}
+      <button onClick={()=>{const nx=avail.find(e=>e!==ex);if(nx){sE(nx);sA({});sS(false);}else sE(null);}} style={{width:"100%",padding:"12px",borderRadius:"10px",border:"none",cursor:"pointer",marginTop:"10px",background:"linear-gradient(135deg,#FF6B35,#FFD93D)",color:"#000",fontWeight:700}}>Next Lesson →</button>
+    </div>}
+  </div>);
+}
+
+// ═══ SLANG ═══
+function SlangS({nav}){
+  const[cat,sC]=useState(null);
+  const ic={greetings:"👋",emotions:"😤",food:"🍕",insults:"😜",compliments:"✨",bargaining:"💰"};
+  const nm={greetings:"Greetings 👋",emotions:"Emotions 😤",food:"Food Talk 🍕",insults:"Playful Insults 😜",compliments:"Compliments ✨",bargaining:"Bargaining 💰"};
+
+  if(!cat) return(<div style={{animation:"fadeIn 0.4s"}}>
+    <Bb onClick={()=>nav("home")}/><div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>🔥 दिल्ली की ज़ुबान</div>
+    <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>Authentic Delhi phrases & slang</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px"}}>
+      {Object.entries(SLANG).map(([k,v],i)=>(<Cd key={k} onClick={()=>sC(k)} style={{textAlign:"center",animation:`slideUp 0.4s ease-out ${i*0.05}s both`}}>
+        <div style={{fontSize:"30px",marginBottom:"6px"}}>{ic[k]}</div><div style={{fontSize:"13px",fontWeight:700}}>{nm[k]}</div>
+        <div style={{fontSize:"10px",color:"#FF6B35",marginTop:"4px"}}>{v.length} phrases</div></Cd>))}
+    </div></div>);
+
+  return(<div style={{animation:"fadeIn 0.4s"}}>
+    <Bb onClick={()=>sC(null)}/><div style={{fontSize:"21px",fontWeight:800,marginBottom:"14px"}}>{ic[cat]} {nm[cat]}</div>
+    {SLANG[cat].map((ph,i)=>(<Cd key={i} style={{marginBottom:"8px",animation:`slideUp 0.3s ease-out ${i*0.04}s both`}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div style={{flex:1}}><div style={{fontSize:"17px",fontWeight:700}}>{ph.h}</div><div style={{fontSize:"12px",color:"#aaa",fontStyle:"italic"}}>{ph.r}</div>
+          <div style={{fontSize:"12px",color:"#FFD93D",marginTop:"3px",fontWeight:600}}>{ph.m}</div></div><Sp text={ph.h}/></div>
+      <div style={{fontSize:"11px",color:"#aaa",marginTop:"6px"}}>📍 {ph.ctx}</div>
+      <div style={{display:"inline-block",marginTop:"6px",padding:"2px 7px",borderRadius:"3px",fontSize:"9px",fontWeight:600,textTransform:"uppercase",background:ph.f==="slang"?"rgba(255,107,53,0.12)":"rgba(52,211,153,0.12)",color:ph.f==="slang"?"#FF6B35":"#34D399"}}>{ph.f}</div>
+    </Cd>))}</div>);
+}
+
+// ═══ VOCAB ═══
+function VocabS({p,sP,nav}){
+  const[set,sSet]=useState(null),[qa,sQ]=useState({}),[chk,sC]=useState(false);
+  function check(){let c=0;set.quiz.forEach((q,i)=>{if(qa[i]===q.c)c++;});const xp=c*10;const np={...p,xp:p.xp+xp,dxp:p.dxp+xp,last:new Date().toDateString()};sP(np);sp(np);sC(true);}
+
+  if(!set) return(<div style={{animation:"fadeIn 0.4s"}}>
+    <Bb onClick={()=>nav("home")}/><div style={{fontSize:"21px",fontWeight:800,marginBottom:"3px"}}>📚 शब्द भंडार</div>
+    <div style={{fontSize:"12px",color:"#999",marginBottom:"18px"}}>{VOCAB.length} themes · {VOCAB.reduce((a,s)=>a+s.words.length,0)} words</div>
+    {VOCAB.map((vs,i)=>(<Cd key={i} onClick={()=>{sSet(vs);sQ({});sC(false);}} style={{marginBottom:"7px",animation:`slideUp 0.3s ease-out ${i*0.04}s both`}}>
+      <div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontSize:"14px",fontWeight:700}}>{vs.theme}</div><div style={{fontSize:"10px",color:"#888"}}>{vs.words.length} words</div></div></Cd>))}</div>);
+
+  return(<div style={{animation:"fadeIn 0.4s"}}>
+    <Bb onClick={()=>{sSet(null);sQ({});sC(false);}}/>
+    <Cd style={{marginBottom:"14px",background:"rgba(52,211,153,0.05)",border:"1px solid rgba(52,211,153,0.12)"}}><div style={{fontSize:"14px",fontWeight:700}}>📖 {set.theme}</div></Cd>
+    {set.words.map((w,i)=>(<Cd key={i} style={{marginBottom:"6px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div><div style={{fontSize:"17px",fontWeight:700}}>{w.h}</div><div style={{fontSize:"11px",color:"#aaa"}}>{w.r} — <span style={{color:"#FFD93D"}}>{w.m}</span></div></div><Sp text={w.h}/></div>
+      {w.d&&<div style={{fontSize:"10px",color:"#FF6B35",marginTop:"4px"}}>🏙️ {w.d}</div>}</Cd>))}
+
+    {set.quiz?.length>0&&<div style={{marginTop:"16px"}}><div style={{fontSize:"13px",fontWeight:700,marginBottom:"8px"}}>🧠 Quiz</div>
+      {set.quiz.map((q,qi)=>(<Cd key={qi} style={{marginBottom:"6px",border:chk?(qa[qi]===q.c?"1px solid rgba(52,211,153,0.35)":"1px solid rgba(239,68,68,0.35)"):"1px solid rgba(255,255,255,0.07)"}}>
+        <div style={{fontSize:"12px",fontWeight:600,marginBottom:"6px"}}>{q.p}</div>
+        {q.o.map((o,oi)=>(<button key={oi} onClick={()=>!chk&&sQ({...qa,[qi]:oi})} style={{display:"block",width:"100%",padding:"7px 10px",marginBottom:"3px",borderRadius:"5px",border:"none",cursor:chk?"default":"pointer",textAlign:"left",fontSize:"11px",
+          background:chk?(oi===q.c?"rgba(52,211,153,0.12)":qa[qi]===oi?"rgba(239,68,68,0.12)":"rgba(255,255,255,0.02)"):(qa[qi]===oi?"rgba(255,107,53,0.12)":"rgba(255,255,255,0.03)"),
+          color:chk?(oi===q.c?"#34D399":"#ccc"):(qa[qi]===oi?"#FF6B35":"#ccc")}}>{o}</button>))}</Cd>))}
+      {!chk?<button onClick={check} disabled={Object.keys(qa).length<set.quiz.length} style={{width:"100%",padding:"11px",borderRadius:"9px",border:"none",cursor:"pointer",background:Object.keys(qa).length>=set.quiz.length?"linear-gradient(135deg,#FF6B35,#FFD93D)":"rgba(255,255,255,0.04)",color:Object.keys(qa).length>=set.quiz.length?"#000":"#666",fontWeight:700}}>Check ✓</button>
+      :<button onClick={()=>{const idx=VOCAB.indexOf(set);sSet(VOCAB[(idx+1)%VOCAB.length]);sQ({});sC(false);}} style={{width:"100%",padding:"11px",borderRadius:"9px",border:"none",cursor:"pointer",background:"linear-gradient(135deg,#FF6B35,#FFD93D)",color:"#000",fontWeight:700}}>Next Theme →</button>}
+    </div>}
+  </div>);
+}
+
+// ═══ PLAN ═══
+function Plan({nav,p}){
+  const wk=Math.min(Math.ceil((p.done+1)/3),12),cur=Math.floor((wk-1)/2);
+  return(<div style={{animation:"fadeIn 0.4s"}}>
+    <Bb onClick={()=>nav("home")}/><div style={{fontSize:"21px",fontWeight:800,marginBottom:"14px"}}>🗺️ 12-Week Roadmap</div>
+    {WPLAN.map((ph,i)=>(<Cd key={i} style={{marginBottom:"8px",border:i===cur?"1px solid rgba(255,107,53,0.25)":"1px solid rgba(255,255,255,0.05)",background:i<cur?"rgba(52,211,153,0.035)":i===cur?"rgba(255,107,53,0.05)":"transparent",animation:`slideUp 0.3s ease-out ${i*0.05}s both`}}>
+      <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+        <div style={{width:"34px",height:"34px",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",fontWeight:800,background:i<cur?"rgba(52,211,153,0.15)":i===cur?"rgba(255,107,53,0.15)":"rgba(255,255,255,0.05)",color:i<cur?"#34D399":i===cur?"#FF6B35":"#666"}}>{i<cur?"✓":"W"+ph.week}</div>
+        <div style={{flex:1}}><div style={{fontSize:"13px",fontWeight:700,color:i===cur?"#FF6B35":i<cur?"#34D399":"#ccc"}}>{ph.focus}{i===cur?" ← You":""}</div><div style={{fontSize:"11px",color:"#888"}}>{ph.goals}</div></div>
+      </div></Cd>))}
+    <Cd style={{marginTop:"10px",background:"rgba(255,193,7,0.05)",border:"1px solid rgba(255,193,7,0.12)"}}><div style={{fontSize:"12px",lineHeight:1.6}}>🎯 <b>Daily:</b> 1-2 lessons + slang review + vocab quiz. ~20 min/day.</div></Cd>
+  </div>);
+}
+
+// ═══ STATS ═══
+function Stats({p,sP,nav}){
+  const lv=gl(p.xp),nx=gn(p.xp),acc=p.lt>0?Math.round((p.ls/p.lt)*100):0;
+  return(<div style={{animation:"fadeIn 0.4s"}}>
+    <Bb onClick={()=>nav("home")}/>
+    <Cd style={{textAlign:"center",marginBottom:"14px",background:"linear-gradient(135deg,rgba(255,107,53,0.08),rgba(138,43,226,0.06))"}}>
+      <div style={{fontSize:"44px"}}>{lv.emoji}</div><div style={{fontSize:"19px",fontWeight:800}}>{lv.name}</div><div style={{fontSize:"12px",color:"#aaa"}}>{lv.eng}</div>
+      <div style={{fontSize:"26px",fontWeight:800,color:"#FFD93D",marginTop:"6px"}}>{p.xp} XP</div>
+      {nx&&<div style={{fontSize:"11px",color:"#888",marginTop:"3px"}}>{nx.xp-p.xp} to {nx.eng}</div>}</Cd>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px",marginBottom:"14px"}}>
+      {[{i:"📖",v:p.done,l:"Lessons"},{i:"🎯",v:acc+"%",l:"Accuracy"},{i:"⚡",v:p.dxp,l:"XP Today"},{i:"🔥",v:p.streak,l:"Streak"}].map((s,i)=>(
+        <Cd key={i} style={{textAlign:"center",padding:"12px"}}><div style={{fontSize:"18px"}}>{s.i}</div><div style={{fontSize:"20px",fontWeight:800,color:"#FF6B35"}}>{s.v}</div><div style={{fontSize:"9px",color:"#888"}}>{s.l}</div></Cd>))}
+    </div>
+    <Cd><div style={{fontSize:"12px",fontWeight:700,marginBottom:"6px"}}>Level Journey</div>
+      {LEVELS.map((l,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:"8px",padding:"3px 0",opacity:p.xp>=l.xp?1:0.35}}>
+        <span style={{fontSize:"16px"}}>{l.emoji}</span><div style={{flex:1,fontSize:"11px"}}><b>{l.name}</b> · {l.eng} <span style={{color:"#888"}}>({l.xp} XP)</span></div>{p.xp>=l.xp&&<span style={{color:"#34D399"}}>✓</span>}</div>))}</Cd>
+    <button onClick={()=>{if(confirm("Reset all progress?")){localStorage.removeItem(SK);location.reload();}}} style={{width:"100%",padding:"9px",borderRadius:"7px",border:"1px solid rgba(239,68,68,0.15)",background:"transparent",color:"#888",fontSize:"11px",cursor:"pointer",marginTop:"10px"}}>Reset Progress</button>
+  </div>);
+}
+
+
+// ═══ APP ═══
+function App(){
+  const[p,sP]=useState(lp());
+  const[scr,sS]=useState("home");
+  const nav=useCallback(s=>sS(s),[]);
+
+  return(<>
+    <BG/>
+    <div style={{position:"relative",zIndex:1,maxWidth:"420px",margin:"0 auto",padding:"14px 16px 90px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0 8px"}}>
+        <div style={{fontSize:"18px",fontWeight:800,cursor:"pointer"}} onClick={()=>nav("home")}>🏙️ <span style={{background:"linear-gradient(135deg,#FF6B35,#FFD93D)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>दिल्ली गुरु</span></div>
+        <div style={{fontSize:"11px",color:"#888"}}>100% Offline</div>
+      </div>
+      <XB xp={p.xp}/>
+      {scr==="home"&&<Home p={p} nav={nav}/>}
+      {scr==="listen"&&<Listen p={p} sP={sP} nav={nav}/>}
+      {scr==="slang"&&<SlangS nav={nav}/>}
+      {scr==="vocab"&&<VocabS p={p} sP={sP} nav={nav}/>}
+      {scr==="plan"&&<Plan nav={nav} p={p}/>}
+      {scr==="stats"&&<Stats p={p} sP={sP} nav={nav}/>}
+    </div>
+    <div style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(10,10,15,0.95)",borderTop:"1px solid rgba(255,255,255,0.06)",backdropFilter:"blur(12px)",zIndex:10}}>
+      <div style={{display:"flex",justifyContent:"space-around",maxWidth:"420px",margin:"0 auto",padding:"8px 0 12px"}}>
+        {[{i:"🏠",l:"Home",s:"home"},{i:"👂",l:"Listen",s:"listen"},{i:"🔥",l:"Slang",s:"slang"},{i:"📚",l:"Vocab",s:"vocab"},{i:"📊",l:"Stats",s:"stats"}].map(n=>(
+          <button key={n.s} onClick={()=>nav(n.s)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",color:scr===n.s?"#FF6B35":"#666",fontSize:"16px",transition:"color 0.2s"}}>
+            <span>{n.i}</span><span style={{fontSize:"9px",fontWeight:scr===n.s?700:400}}>{n.l}</span></button>))}
+      </div>
+    </div>
+  </>);
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
 </body>
 </html>
